@@ -1,0 +1,6 @@
+#-*- require-final-newline: nil -*-
+#name : class ... extends ... implements
+# --
+public class ${1:name} extends ${2:superclass} implements ${interfaces} {
+  $0
+}

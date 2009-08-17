@@ -1,0 +1,11 @@
+#name : CRC card
+# --
+* ${class}
+
+** Responsibilities
+
+   $0
+
+** Collaborators
+
+** API

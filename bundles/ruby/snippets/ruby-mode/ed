@@ -1,0 +1,5 @@
+#-*- require-final-newline: nil -*-
+#contributor: Michael Klishin <michael.s.klishin@gmail.com>
+#empty directory
+# --
+empty_directory :${1:dir_name}, "${2:dir_location}"

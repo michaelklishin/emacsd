@@ -1,0 +1,4 @@
+#%tag{:class => "..."}
+# --
+%tag{:class => "${1:class}"}
+  $0

@@ -1,0 +1,4 @@
+#name : print
+# --
+print "${1:msg}";
+$0

@@ -1,0 +1,4 @@
+#%div{:class => "..."}
+# --
+%div{:class => "${1:class}"}
+  $0

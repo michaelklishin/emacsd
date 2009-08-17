@@ -1,0 +1,4 @@
+#-*- require-final-newline: nil -*-
+#name : fun
+# --
+fun() -> ${1:body} end$0

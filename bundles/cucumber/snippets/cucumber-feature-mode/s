@@ -1,0 +1,7 @@
+#Scenario ...
+# --
+Scenario: ${1:...}
+  Given ${2:one condition}
+  And ${3:other condition}
+  When ${4:even happens}
+  Then ${5:some outcome expected}

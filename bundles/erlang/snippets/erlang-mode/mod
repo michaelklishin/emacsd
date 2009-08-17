@@ -1,0 +1,4 @@
+#-*- require-final-newline: nil -*-
+#name : module
+# --
+-module(${1:modname}).

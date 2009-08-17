@@ -1,0 +1,5 @@
+#-*- require-final-newfile: nil -*-
+#contributor: Michael Klishin <michael.s.klishin@gmail.com>
+#name : set fixture class ...
+# --
+set_fixture_class(:${1:fixture_method} => ${2:class})

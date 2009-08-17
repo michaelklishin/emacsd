@@ -1,0 +1,5 @@
+#name : module ... end
+# --
+module ${1:Rendering}
+  $0
+end # $1

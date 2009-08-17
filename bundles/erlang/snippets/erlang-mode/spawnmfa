@@ -1,0 +1,4 @@
+#-*- require-final-newline: nil -*-
+#name : spawn(Mod, Fun, Args)
+# --
+spawn(${1:Module}, ${2:Fun}, ${3:Args})$0        

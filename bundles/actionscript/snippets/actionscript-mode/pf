@@ -1,0 +1,6 @@
+#-*- require-final-newline: nil -*-
+#name : public function
+# --
+public function ${1:name}(${2:arguments}):${3:value}{
+  $0;
+}

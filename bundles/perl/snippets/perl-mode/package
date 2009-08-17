@@ -1,0 +1,12 @@
+package ${1:ClassName};
+
+use base qw(${2:ParentClass});
+
+sub new {
+  my \$class = shift;
+  \$class = ref \$class if ref \$class;
+  my \$self = bless {}, \$class;
+  \$self;
+}
+
+$0;

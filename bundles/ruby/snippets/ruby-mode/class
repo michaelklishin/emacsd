@@ -1,0 +1,16 @@
+#name : class ... end
+# --
+class ${1:ObjectMemory}
+
+  #
+  # Behaviors
+  #
+
+  $2
+
+  #
+  # API
+  #
+
+  $0
+end # $1

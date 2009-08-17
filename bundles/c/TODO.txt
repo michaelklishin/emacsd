@@ -1,0 +1,67 @@
+Things to do
+============
+
+- optimizations
+
+- class completion
+
+- skip stuff in comments and strings
+
+- handle namespace of classes retrieved from source. now everything in
+  the source is considered to be in the same namespace
+
+- handle name lookup for embedded classes and types
+
+- handle enum
+
+- handle [][]
+
+- auto help (with internal error handling)
+
+- handle out/ref parameters
+
+- function invocation should check the type of invocation arguments
+  too if possible to narrow down the list of possible overloads
+
+- overloaded function argument can be base/derived types too
+
+- handling scopes without blocks when scoping an other control structure
+
+  e.g.       foreach (Items item ... )
+                if (stuff)
+                {
+                     ;; item is not detected here
+                }
+
+- handle casting
+
+- overloading methods with default parameter values
+
+- skip construtor initializers when parsing function argument
+   ...) : base()... 
+
+- using explicit full or partial namespaces as prefix
+  (e.g. System.Console after "using System;")
+
+- function doc for generic methods (e.g. List.Add)
+
+  M:System.Collections.Generic.List`1.Add(`0)
+
+  what is `0? probably reflection should be used to handle generic
+  stuff properly
+
+- check all forward/backward-sexps for error checking
+
+  or maybe they should be left as is, so that the user is notified of
+  syntax errors?
+
+- tooltip is hidden immediately if mouse cursor is in the way, though
+  the cursor is moved away first. why is that?
+
+- extract return value documentation from assemblies
+
+- extract thrown exception documentation from assemblies
+
+- constructors without any modifier are not handled (they are private
+  and private constrcutors are not that useful, so it may not be a big
+  deal)

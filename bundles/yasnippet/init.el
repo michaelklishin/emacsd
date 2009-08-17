@@ -1,0 +1,3 @@
+(require 'yasnippet)
+
+(yas/initialize)

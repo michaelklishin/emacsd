@@ -1,0 +1,5 @@
+#name : system @ary
+# --
+@${1:ary} = ($2);
+system @$1;
+$0

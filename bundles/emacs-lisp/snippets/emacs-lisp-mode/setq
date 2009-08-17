@@ -1,0 +1,4 @@
+#-*- require-final-newline: nil -*-
+#setq
+# --
+(setq ${1:sym} ${2:value})

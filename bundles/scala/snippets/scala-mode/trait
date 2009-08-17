@@ -1,0 +1,6 @@
+#-*- require-final-newline: nil -*-
+#trait
+# --
+trait ${1:name} ${2:rest} {
+  $0
+}

@@ -1,0 +1,15 @@
+#name: describe "an object" do ... end
+# --
+describe "${1:an object}" do
+  before :all do
+    @model = ${2:Klass}.${3:new}
+  end
+  
+  describe "${4:state}" do
+    before :all do
+      @model.${5:title = nil}
+    end
+
+    itp$0
+  end
+end

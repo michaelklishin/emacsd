@@ -1,0 +1,7 @@
+#spec_helper.rb content
+# --
+require "rubygems"
+require "spec"
+
+__dir__ = File.dirname(__FILE__)
+require File.join(__dir__, '..', 'lib', ${1:libname}')

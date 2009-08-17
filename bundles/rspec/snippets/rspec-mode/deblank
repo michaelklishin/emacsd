@@ -1,0 +1,11 @@
+#name: describe 'without ...' (validation context)
+# --
+describe "with blank ${1:property}" do
+  before :all do
+    @model.${1} = ""
+  end
+
+  it 'is not valid' do
+    @model.should_not be_valid
+  end
+end

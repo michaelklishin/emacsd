@@ -1,0 +1,6 @@
+#-*- require-final-newline: nil -*-
+#name: throw content
+# --
+<% throw_content :${1:stylesheets} do %>
+  $0
+<% end %>

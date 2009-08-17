@@ -1,0 +1,4 @@
+#-*- require-final-newline: nil -*-
+# for comprehension
+# --
+for { ${1:x} <- ${2:expression} } $0

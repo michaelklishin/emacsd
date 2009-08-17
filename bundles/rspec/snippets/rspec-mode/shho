@@ -1,0 +1,8 @@
+# -*- require-final-newline: nil -*-
+# name: should have_one
+# --
+it "has one ${1:assoc}" do
+  ${2:model}.should have_one(:$1)
+end
+
+$0

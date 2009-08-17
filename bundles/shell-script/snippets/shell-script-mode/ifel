@@ -1,0 +1,9 @@
+#if ... else ... fi
+# --
+if [ ${1:condition} ]; then
+ ${3:then clause}
+else
+  ${2:else clause}
+fi
+
+$0

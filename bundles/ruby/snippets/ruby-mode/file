@@ -1,0 +1,5 @@
+#-*- require-final-newline: nil -*-
+#contributor: Michael Klishin <michael.s.klishin@gmail.com>
+#file
+# --
+file :${1:file_name}, "${2:file_location}"

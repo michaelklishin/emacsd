@@ -1,0 +1,26 @@
+#name : Orwik trait
+# --
+module Traits
+  module Orwik
+    module ${1:Appendable}
+      def self.included(host)
+        host.extend(ClassMethods)
+
+        host.class_eval do
+          $0
+        end
+
+        host.send(:include, InstanceMethods)
+      end # self.included
+
+
+      module ClassMethods
+
+      end # ClassMethods
+
+      module InstanceMethods
+
+      end # InstanceMethods
+    end # $1
+  end # Orwik
+end # Traits

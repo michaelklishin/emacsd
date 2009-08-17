@@ -1,0 +1,4 @@
+# -*- coding: utf-8 -*-
+# name: import
+# --
+from ${1:twisted.internet} import ${2:reactor}

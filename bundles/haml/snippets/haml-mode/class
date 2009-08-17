@@ -1,0 +1,4 @@
+#.element_class
+# --
+${1:tag}.${2:class}
+  $0

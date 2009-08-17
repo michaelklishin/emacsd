@@ -1,0 +1,4 @@
+#-*- require-final-newline: nil -*-
+#name : spawn/0
+# --
+spawn(fun() -> ${1:body} end).

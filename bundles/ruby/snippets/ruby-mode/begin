@@ -1,0 +1,5 @@
+begin
+  ${1:block that may raise an exception}
+rescue ${2:Exception} => ${3:e}
+  $0
+end

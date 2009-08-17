@@ -1,0 +1,8 @@
+#-*- require-final-newline: nil -*-
+#contributor: Michael Klishin <michael.s.klishin@gmail.com>
+#template
+# --
+template :${1:template_name} do
+  source      "${2:source}.rbt"
+  destination "${3:destination}"
+end

@@ -1,0 +1,3 @@
+#validates_present
+# --
+validates_present ${1:properties}

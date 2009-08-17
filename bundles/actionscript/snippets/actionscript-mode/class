@@ -1,0 +1,6 @@
+#-*- require-final-newline: nil -*-
+#name : class
+# --
+public class ${1:name} {
+  $0
+}

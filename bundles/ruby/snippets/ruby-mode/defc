@@ -1,0 +1,6 @@
+#-*- require-final-newline: nil -*-
+#class method, no params
+# --
+def self.${1:name}
+  $0
+end # self.$1

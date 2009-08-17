@@ -1,0 +1,3 @@
+#shebang
+# --
+#!/usr/bin/env ruby -Ku

@@ -1,0 +1,4 @@
+#name : chdir DIR
+# --
+chdir $1;
+$0

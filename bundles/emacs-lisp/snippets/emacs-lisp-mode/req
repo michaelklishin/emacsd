@@ -1,0 +1,4 @@
+#-*- require-final-newline: nil -*-
+#req
+# --
+(require '${1:library})

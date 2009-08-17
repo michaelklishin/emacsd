@@ -1,0 +1,3 @@
+#include ...
+# --
+include ${1:module}

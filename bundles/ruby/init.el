@@ -1,0 +1,12 @@
+(require 'ruby-mode)
+(require 'inf-ruby)
+(require 'ruby-electric)
+;;(require 'autotest)
+;;(require 'toggle)
+
+(load "ri-emacs/ri")
+
+;; load bundle snippets
+(yas/load-directory "~/emacsd/bundles/ruby/snippets")
+
+(add-to-list 'auto-mode-alist '("\\.rb$" . ruby-mode))

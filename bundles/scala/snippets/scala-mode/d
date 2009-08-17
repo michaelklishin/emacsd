@@ -1,0 +1,4 @@
+#-*- require-final-newline: nil -*-
+# def one liner
+# --
+def ${1:name}(${2:args}) = $0

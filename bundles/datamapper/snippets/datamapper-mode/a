@@ -1,0 +1,3 @@
+#after :message, :advice
+# --
+after :${1:message}, ${2:advice}

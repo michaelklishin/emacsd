@@ -1,0 +1,3 @@
+#= link_to "${1:name}", url(:${2:route}, ${3:args})
+# --
+= link_to "${1:name}", url(:${2:route}, ${3:args})

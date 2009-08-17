@@ -1,0 +1,4 @@
+#%input{:type => "...", :name => "...", :value => "value"}
+# --
+%input{:type => "${1:type}", :name => "${2:name}", :value => "${3:value}"}
+$0

@@ -1,0 +1,32 @@
+#DataMapper resource
+# --
+class ${1:Klass}
+  include ::DataMapper::Resource
+
+  #
+  # Behaviors
+  #
+  
+  #
+  # Properties
+  #
+
+  ${2:p}$0
+  
+  #
+  # Associations
+  #
+
+  #
+  # Validations
+  #
+  
+  #
+  # Hooks
+  #
+
+  #
+  # API
+  #
+  
+end

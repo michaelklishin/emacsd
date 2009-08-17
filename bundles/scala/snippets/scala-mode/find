@@ -1,0 +1,5 @@
+#-*- require-final-newline: nil -*-
+# find
+# --
+find(${1:_}${2:rest})
+$0

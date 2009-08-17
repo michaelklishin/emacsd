@@ -1,0 +1,3 @@
+#= link_to "${1:name}", url(:${2:route}, ${3:args}), :class => "${4:class}" do
+# --
+= link_to "${1:name}", url(:${2:route}, ${3:args}), :class => "${4:class}" do

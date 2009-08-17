@@ -1,0 +1,4 @@
+#=form :action => "...", :class => "..." do
+# --
+= form :action => ${1:action}, :class => "${2:class}" do
+  $0

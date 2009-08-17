@@ -1,0 +1,3 @@
+#validates_within
+# --
+validates_within ${1:properties}, :set => ${2:set}

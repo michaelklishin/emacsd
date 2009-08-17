@@ -1,0 +1,4 @@
+#name : require "..."
+# --
+require "${1:rubygems}"
+$0

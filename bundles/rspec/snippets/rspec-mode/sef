@@ -1,0 +1,5 @@
+#name: shared_examples_for "something" do ... end
+# --
+shared_examples_for "${1:interface/module}" do
+  $0
+end

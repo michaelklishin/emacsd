@@ -1,0 +1,9 @@
+#name: describe SomeClass do ... end
+# --
+describe "${1:subject}" do
+  before :all do
+    @model.${2}
+  end
+
+  itp$0
+end

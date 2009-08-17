@@ -1,0 +1,5 @@
+#name: subject { ... }
+# --
+subject do
+  $0
+end

@@ -1,0 +1,4 @@
+# -*- require-final-newline: nil -*-
+# name: before (Merb)
+# --
+before :${1:filter}

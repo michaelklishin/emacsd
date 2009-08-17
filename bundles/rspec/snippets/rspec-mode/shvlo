@@ -1,0 +1,8 @@
+# -*- require-final-newline: nil -*-
+# name: should validate_length_of
+# --
+it "validates length of ${1:property}" do
+  ${2:model}.should validate_length_of(:$1, ${3:from}..${4:to})
+end
+
+$0

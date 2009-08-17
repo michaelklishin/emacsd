@@ -1,0 +1,3 @@
+#validates_is_number
+# --
+validates_is_number ${1:properties}

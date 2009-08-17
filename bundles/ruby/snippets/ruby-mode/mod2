@@ -1,0 +1,7 @@
+#name : nested module ... end
+# --
+module ${1:Traits}
+  module ${2:Rendering}
+    $0
+  end # $2
+end # $1

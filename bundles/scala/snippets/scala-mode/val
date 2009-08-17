@@ -1,0 +1,5 @@
+#-*- require-final-newline: nil -*-
+# val x = ...
+# --
+val ${1:x} = ${2:value/expression}
+$0

@@ -1,0 +1,4 @@
+#-*- require-final-newline: nil -*-
+#name : spec file header
+# --
+require File.join(File.dirname(__FILE__), 'spec_helper')

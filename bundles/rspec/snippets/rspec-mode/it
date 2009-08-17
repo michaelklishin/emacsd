@@ -1,0 +1,5 @@
+#name: it "should do something" do ... end
+# --
+it "${1:does/is/has something}" do
+  $0
+end

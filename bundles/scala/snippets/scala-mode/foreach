@@ -1,0 +1,5 @@
+#-*- require-final-newline: nil -*-
+# foreach
+# --
+foreach(${1:_}${2:rest})
+$0

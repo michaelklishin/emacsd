@@ -1,0 +1,6 @@
+#-*- require-final-newline: nil -*-
+#override def
+# --
+override def ${1:name}(${2:args}) = {
+  $0
+}

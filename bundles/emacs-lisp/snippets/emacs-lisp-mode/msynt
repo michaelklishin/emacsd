@@ -1,0 +1,4 @@
+#-*- require-final-newline: nil -*-
+#make-syntax-table
+# --
+(setq ${1:table} (make-syntax-table ${2:parent}))

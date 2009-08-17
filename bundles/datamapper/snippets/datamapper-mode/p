@@ -1,0 +1,3 @@
+#property :name
+# --
+property :${1:name}, ${2:type}${3:, rest}

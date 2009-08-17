@@ -1,0 +1,8 @@
+# -*- require-final-newline: nil -*-
+# name: should validate_presence_of
+# --
+it "validates presence of ${1:property}" do
+  ${2:model}.should validate_presence_of(:$1)
+end
+
+$0

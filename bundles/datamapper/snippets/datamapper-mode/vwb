@@ -1,0 +1,9 @@
+#validates_with_block
+# --
+validates_with_block ${1:properties} do
+  if ${2:condition}
+    $0
+  else
+    [false, "${3:message}"]
+  end
+end

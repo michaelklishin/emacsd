@@ -1,0 +1,5 @@
+#-*- require-final-newfile: nil -*-
+#contributor: Michael Klishin <michael.s.klishin@gmail.com>
+#name : display @entity
+# --
+display @${1:enity}

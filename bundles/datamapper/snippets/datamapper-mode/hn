@@ -1,0 +1,3 @@
+#has n, :associates
+# --
+has n, :${1:associates}${2:rest}

@@ -1,0 +1,35 @@
+# mode for ruby library (derived from ruby-mode)
+# --
+;;
+;; ${1:mode name}-mode.el
+;;
+(eval-when-compile (require 'cl))
+(require 'ruby-mode)
+
+;;
+;; syntax table
+;;
+
+(setq $1-mode-syntax-table (make-syntax-table ruby-mode-syntax-table))
+
+;;
+;; font locking
+;;
+
+
+
+;;
+;; derived mode
+;;
+
+
+
+;;
+;; hooks
+;;
+
+
+(define-derived-mode $1-mode ruby-mode "${2:human readable name}")
+
+(add-to-list 'auto-mode-alist '("${3:file pattern}" . $1-mode))
+(provide '$1-mode)

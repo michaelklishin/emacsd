@@ -1,0 +1,4 @@
+#name : use MODULE
+# --
+use ${1:strict};
+$0

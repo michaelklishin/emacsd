@@ -1,0 +1,6 @@
+#-*- require-final-newline: nil -*-
+#lambda do ... end
+# --
+lambda do
+  $0
+end

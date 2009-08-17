@@ -1,0 +1,6 @@
+#-*- require-final-newline: nil -*-
+#def
+# --
+def ${1:name}(${2:args}) = {
+  $0
+}

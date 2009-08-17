@@ -1,0 +1,3 @@
+#validates_is_primitive
+# --
+validates_is_primitive ${1:properties}

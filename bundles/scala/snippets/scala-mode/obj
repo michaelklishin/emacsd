@@ -1,0 +1,6 @@
+#-*- require-final-newline: nil -*-
+# object
+# --
+object ${1:name} {
+  $0
+}

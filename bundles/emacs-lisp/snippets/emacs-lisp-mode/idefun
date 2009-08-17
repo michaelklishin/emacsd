@@ -1,0 +1,6 @@
+#idefun
+# --
+(defun ${1:name} (${2:arglist})
+"${3:doc string}"
+(interactive${4:imode})
+(${5:body}))

@@ -1,0 +1,4 @@
+#l
+# --
+(lambda (${1:arglist})
+  (${2:body}))

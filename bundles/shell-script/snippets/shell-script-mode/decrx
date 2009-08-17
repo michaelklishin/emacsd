@@ -1,0 +1,3 @@
+#declare -rx
+# --
+declare -rx ${1:var}="${2:value}"
