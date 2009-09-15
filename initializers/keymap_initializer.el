@@ -16,6 +16,9 @@
 (global-set-key (kbd "C-c C-p r") 'gist-region-private)
 (global-set-key (kbd "C-c C-p f") 'gist-fetch)
 
+;;; Text indentation
+
+(global-set-key (kbd "C-M-\\") 'indent-buffer)
 
 ;;; Navigation
 
