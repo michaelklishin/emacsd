@@ -33,5 +33,5 @@
 (require 'color-theme)
 
 ;; load twilight theme
-(load "themes/sunburst")
-(color-theme-sunburst)
+(load "themes/twilight")
+(color-theme-twilight)
