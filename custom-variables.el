@@ -3,13 +3,16 @@
   ;; If you edit it by hand, you could mess it up, so be careful.
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
+ '(aquamacs-additional-fontsets nil t)
+ '(aquamacs-customization-version-id 202 t)
+ '(aquamacs-tool-bar-user-customization nil t)
  '(auto-revert-interval 10)
  '(auto-save-default t)
  '(auto-save-interval 500)
  '(battery-update-interval 300)
- '(column-number-mode t)
  '(custom-buffer-indent 2)
  '(custom-buffer-sort-alphabetically t)
+ '(default-frame-alist (quote ((tool-bar-lines . 0) (vertical-scroll-bars) (fringe) (right-fringe) (left-fringe . 1) (internal-border-width . 0) (cursor-type . box) (menu-bar-lines . 1) (background-color . "#111") (background-mode . dark) (border-color . "#111") (cursor-color . "yellow") (foreground-color . "#ddd") (mouse-color . "sienna1"))))
  '(default-major-mode (quote org-mode))
  '(display-battery-mode t)
  '(display-time-mode t)
@@ -23,9 +26,11 @@
  '(iswitchb-mode t)
  '(mail-indentation-spaces 2)
  '(make-backup-files nil)
- '(ns-alternate-modifier (quote meta) t)
- '(ns-antialias-text nil t)
- '(ns-command-modifier (quote super) t)
+ '(ns-alternate-modifier (quote meta))
+ '(ns-antialias-text nil)
+ '(ns-command-modifier (quote super))
+ '(ns-tool-bar-display-mode nil t)
+ '(ns-tool-bar-size-mode nil t)
  '(nxml-attribute-indent 2)
  '(org-agenda-files (quote ("~/org/pro/mission.org" "~/org/home/home.org")))
  '(org-log-done (quote note))
@@ -38,7 +43,6 @@
  '(safe-local-variable-values (quote ((ruby-indent-level . 2) (byte-compile-warnings not cl-functions) (generated-autoload-file . "cl-loaddefs.el") (require-final-newline))))
  '(server-mode nil)
  '(server-raise-frame nil)
- '(show-paren-mode t)
  '(size-indication-mode t)
  '(standard-indent 2))
 (custom-set-faces
@@ -47,4 +51,5 @@
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
  '(default ((t (:inherit nil :stipple nil :background "#040404" :foreground "#FFFFFF" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight light :height 120 :width condensed :foundry "apple" :family "Monaco"))))
+ '(Custom-mode-default ((t (:inherit autoface-default :height 140 :family "DejaVu Sans Mono"))) t)
  '(font-lock-comment-face ((t (:foreground "#9933CC")))))
