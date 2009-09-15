@@ -1377,5 +1377,9 @@ buffer position `limit' or the end of the buffer."
      ("^__END__" nil label))))
  )
 
+(defun ruby-newline-and-indent ()
+  (interactive)
+  (newline)
+  (ruby-indent-command))
 
 (provide 'ruby-mode)
