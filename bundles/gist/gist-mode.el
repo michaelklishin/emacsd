@@ -65,7 +65,8 @@ Copies the URL into the kill ring."
                      "-F 'file_name[gistfile1]=%s' "
                      "-F 'file_contents[gistfile1]=<-' "
                      "%s "
-                     "http://gist.github.com/gists") ext name do-private)
+		     "%s "
+                     "http://gist.github.com/gists") ext name do-private login)
      output)
     (with-current-buffer output
       (re-search-backward "href=\"\\(.*\\)\"")
