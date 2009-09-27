@@ -82,7 +82,7 @@
 
 ;; Version control
 
-(global-set-key (kbd "C-x C-g s") 'magit-status)
+(global-set-key (kbd "C-x C-g") 'magit-status)
 ;; (global-set-key (kbd "C-x v g") 'gitsum)
 ;; (global-set-key (kbd "C-x v d") 'vc-dir)
 
