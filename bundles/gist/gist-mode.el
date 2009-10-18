@@ -57,14 +57,14 @@ Copies the URL into the kill ring."
                   "txt"))
          (output (generate-new-buffer " *gist*"))
          (login (github-auth-string))
-         (do-private (if private "-F private=1" "")))
+         (do-private (if private "private" "public")))
     (shell-command-on-region
      begin end
      (format (concat "curl -sS "
                      "-F 'file_ext[gistfile1]=.%s' "
                      "-F 'file_name[gistfile1]=%s' "
                      "-F 'file_contents[gistfile1]=<-' "
-                     "%s "
+                     "-F 'action_button=%s' "
 		     "%s "
                      "http://gist.github.com/gists") ext name do-private login)
      output)
