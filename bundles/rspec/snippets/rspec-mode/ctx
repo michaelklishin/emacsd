@@ -1,0 +1,5 @@
+#name: context "an object" do ... end
+# --
+context "${1:an object}" do
+  $0
+end
