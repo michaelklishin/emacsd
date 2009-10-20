@@ -1,3 +1,3 @@
 (require 'markdown-mode)
 
-(yas/load-directory "~/emacsd/bundles/markdown/snippets")
+;; (yas/load-directory "~/emacsd/bundles/markdown/snippets")
