@@ -1,5 +1,9 @@
+(load-library "haskell-site-file")
+
 (require 'haskell-mode)
 (add-to-list 'auto-mode-alist '("\\.hs$" . haskell-mode))
+
+(add-hook 'haskell-mode-hook 'turn-on-haskell-indent)
 
 (yas/load-directory "~/emacsd/bundles/haskell/snippets")
 
