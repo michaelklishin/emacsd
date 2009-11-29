@@ -1,0 +1,3 @@
+#name: it "responds to :message"
+# --
+it "responds to :${1:message}"
