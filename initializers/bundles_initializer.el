@@ -71,7 +71,7 @@
 (elbundle/load-elbundle "cpp")
 
 ;; (elbundle/load-elbundle "apache-mode")
-;; (elbundle/load-elbundle "erlang")
+(elbundle/load-elbundle "erlang")
 
 (elbundle/load-elbundle "growl")
 (elbundle/load-elbundle "ack")
