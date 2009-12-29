@@ -1,3 +1,4 @@
+*.elc
 .gitignore
 autoload-files-init.el
 custom-variables.el
