@@ -22,7 +22,6 @@
 (elbundle/load-elbundle "text")
 (elbundle/load-elbundle "emacs-lisp")
 (elbundle/load-elbundle "etest")
-(elbundle/load-elbundle "site-local")
 
 (elbundle/load-elbundle "linkify")
 (elbundle/load-elbundle "ruby")
