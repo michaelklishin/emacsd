@@ -1,0 +1,10 @@
+# name: CREATE OR REPLACE FUNCTION ...
+# --
+CREATE OR REPLACE FUNCTION ${1:name}(${2:arguments}) RETURNS ${3:return type} AS $$
+  DECLARE
+    result $3 := NULL;
+    $0
+  BEGIN
+    RETURN result;
+  END;
+$$ LANGUAGE plpgsql;
