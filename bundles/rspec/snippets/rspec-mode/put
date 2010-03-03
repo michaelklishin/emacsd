@@ -1,0 +1,3 @@
+#name: put :action, { ... } do ... end
+# --
+put :${1:show}, { ${2:params} }, { ${3:session} }

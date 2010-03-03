@@ -1,0 +1,3 @@
+#name: delete :action, { ... } do ... end
+# --
+delete :${1:show}, { ${2:params} }, { ${3:session} }

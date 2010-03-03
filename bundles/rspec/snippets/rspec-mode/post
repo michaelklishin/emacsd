@@ -1,0 +1,3 @@
+#name: post :action, { ... } do ... end
+# --
+post :${1:show}, { ${2:params} }, { ${3:session} }
