@@ -1,0 +1,7 @@
+#name: comment section for Ruby end
+# --
+#
+# ${1:API}
+#
+
+$0
