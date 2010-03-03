@@ -23,7 +23,7 @@
 ;; 
 (defvar byte-compile-warnings t)
 (defvar byte-compile-verbose t)
-(load-initializer "bytecode_cache")
+;; (load-initializer "bytecode_cache")
 
 
 (load-initializer "path")
