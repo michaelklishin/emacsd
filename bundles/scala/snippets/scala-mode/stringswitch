@@ -1,0 +1,6 @@
+#-*- require-final-newline: nil -*-
+# parser.string(...)
+# --
+parser.string("${1:description}", Some("${2:short name}"), Some("${3:long name}"), (value: String) => {
+  Environment.$0 = Some(value)
+})

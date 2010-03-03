@@ -1,0 +1,6 @@
+#-*- require-final-newline: nil -*-
+# parser.flag(...)
+# --
+parser.flag("${1:description}", Some("${2:short name}"), Some("${3:long name}"), (value: Boolean) => {
+  Environment.$0 = value
+})
