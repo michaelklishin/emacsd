@@ -1,4 +1,4 @@
 # -*- require-final-newline: nil -*-
-# name: before (Merb)
+# name: before_filter (Ruby on Rails)
 # --
-before :${1:filter}
+before_filter :${1:filter}
