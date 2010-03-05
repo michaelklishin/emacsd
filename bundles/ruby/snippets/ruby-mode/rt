@@ -1,0 +1,5 @@
+#name : respond_to do ...
+# --
+respond_to do |format|
+  format.${1:json} { $0 }
+end
