@@ -1,0 +1,4 @@
+#name: Factory.attributes_for(:entity)
+# --
+Factory.attributes_for(:${1:person})
+$0

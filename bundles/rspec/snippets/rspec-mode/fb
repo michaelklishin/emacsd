@@ -1,0 +1,4 @@
+#name: Factory.build(:entity)
+# --
+Factory.build(:${1:person})
+$0
