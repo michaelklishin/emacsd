@@ -1,0 +1,3 @@
+#name: let(:entity) { ... }
+# --
+let(:${1:person}) { $0 }
