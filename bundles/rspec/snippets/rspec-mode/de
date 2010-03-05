@@ -15,5 +15,5 @@ describe ${1:constant} do
   # Examples
   #
 
-  # ...
+  $0
 end
