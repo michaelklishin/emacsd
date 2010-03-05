@@ -1,0 +1,5 @@
+#-*- require-final-newline: nil -*-
+#name : should be_predicate
+# --
+${1:target}.should be_${2:easy_to_use}
+$0
