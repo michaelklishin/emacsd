@@ -1,15 +1,19 @@
 #describe ... do ... end
 # --
 describe ${1:constant} do
-  before :all do
-    @model = $1.${2:new}
-  end
-  
-  describe "${3:state}" do
-    before :all do
-      @model.${4:title = nil}
-    end
 
-    itp$0
-  end
+  #
+  # Environment
+  #
+
+  # before(:all) { described_class.delete_all }
+  # let(:person) { Factory.build(:person)     }
+  # subject      { person                     }
+
+
+  #
+  # Examples
+  #
+
+  # ...
 end
