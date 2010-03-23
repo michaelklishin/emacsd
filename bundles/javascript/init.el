@@ -1,3 +1,4 @@
 (yas/load-directory "~/emacsd/bundles/javascript/snippets")
 
-(add-to-list 'auto-mode-alist '("\\.json" js-mode))
+(require 'js)
+(add-to-list 'auto-mode-alist '("\\.json" javascript-mode))
