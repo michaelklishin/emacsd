@@ -1,10 +1,4 @@
-;;
-;; Make sure custom variables get loaded very early on,
-;; before byte-compilation anyway.
-;;
-
 (setq custom-file (concat emacsd-dir "custom-variables.el"))
-(load "custom-variables")
 
 ;;
 ;; Initializers
@@ -34,3 +28,5 @@
 (load-initializer "ui")
 (load-initializer "ido")
 (load-initializer "bundles")
+
+(load "custom-variables")
