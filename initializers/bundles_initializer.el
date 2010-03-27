@@ -37,7 +37,7 @@
 (elbundle/load-elbundle "c")
 (elbundle/load-elbundle "cpp")
 (elbundle/load-elbundle "sql")
-;; (elbundle/load-elbundle "erlang")
+(elbundle/load-elbundle "erlang")
 (elbundle/load-elbundle "python")
 (elbundle/load-elbundle "scala")
 (elbundle/load-elbundle "clojure")
