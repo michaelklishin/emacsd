@@ -1,2 +1,2 @@
-(require 'tabbar)q
+(require 'tabbar)
 (tabbar-mode)
