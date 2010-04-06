@@ -47,9 +47,6 @@
 (elbundle/load-elbundle "javascript")
 (elbundle/load-elbundle "shell-script")
 
-(elbundle/load-elbundle "datamapper")
-(elbundle/load-elbundle "merb")
-
 (elbundle/load-elbundle "yaml")
 (elbundle/load-elbundle "haml")
 (elbundle/load-elbundle "xml")

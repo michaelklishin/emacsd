@@ -1,3 +1,0 @@
-#validates_length
-# --
-validates_length ${1:properties}

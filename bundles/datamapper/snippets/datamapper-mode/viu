@@ -1,3 +1,0 @@
-#validates_is_unique
-# --
-validates_is_unique ${1:properties}

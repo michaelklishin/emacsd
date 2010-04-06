@@ -1,3 +1,0 @@
-#validates_with_method
-# --
-validates_with_method ${1:properties}, :${2:method}, :message => "${3:message}"

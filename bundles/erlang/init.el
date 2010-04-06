@@ -2,6 +2,7 @@
 (setq erlang-root-dir "/usr/local/Cellar/erlang/R13B04/lib/erlang/")
 (setq load-path (cons "/usr/local/Cellar/erlang/R13B04/lib/erlang/lib/tools-2.6.5.1/emacs/" load-path))
 (setq exec-path (cons "/usr/local/Cellar/erlang/R13B04/lib/erlang/bin/" exec-path))
+(setq erlang-root-dir "/usr/local/Cellar/erlang/R13B04")
 
 (require 'erlang-start)
 (require 'erlang)

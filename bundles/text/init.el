@@ -49,6 +49,8 @@
   (interactive)
   (indent-region (point-min) (point-max)))
 
+(add-hook 'before-save-hook 'untabify-buffer t)      
+
 ;;
 ;; FFAP and others
 ;;

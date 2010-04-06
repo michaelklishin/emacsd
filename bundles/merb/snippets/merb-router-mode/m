@@ -1,5 +1,0 @@
-#match(...)
-# --
-match("${1:segments}").
-  to(:controller => "${2:ControllerClass}", :action => "${3:action_name}").
-  name(:${4:name})

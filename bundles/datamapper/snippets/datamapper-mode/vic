@@ -1,3 +1,0 @@
-#validates_is_confirmed
-# --
-validates_is_confirmed ${1:properties}

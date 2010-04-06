@@ -1,3 +1,0 @@
-#belongs_to :associate, :index => true, :class_name => ...
-# --
-belongs_to :${1:associate}, :index => true, :class_name => "${2:name}"

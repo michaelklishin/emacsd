@@ -1,3 +1,0 @@
-#belongs_to :associate
-# --
-belongs_to :${1:associate}, :index => true

@@ -1,3 +1,0 @@
-#validates_absent
-# --
-validates_absent ${1:properties}

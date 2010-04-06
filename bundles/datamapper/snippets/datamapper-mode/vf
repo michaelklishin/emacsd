@@ -1,3 +1,0 @@
-#validates_format
-# --
-validates_format ${1:properties}

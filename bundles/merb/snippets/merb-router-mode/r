@@ -1,3 +1,0 @@
-# resource
-# --
-resource :${1:account_activation}${2}
