@@ -1,0 +1,5 @@
+# name: lambda do ... end
+# --
+lambda do
+  $0
+end
