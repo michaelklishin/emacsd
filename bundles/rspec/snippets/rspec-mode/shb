@@ -2,5 +2,5 @@
 #contributor: gary <ge.iams@gmail.com>
 #name : should be
 # --
-${1:target}.should be(${2:result})
+${1:target}.should be_${2:result}
 $0
