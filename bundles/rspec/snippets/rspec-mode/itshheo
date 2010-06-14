@@ -1,0 +1,5 @@
+#name: it "should have errors on something" do ... end
+# --
+it "should have errors on ${1:title}" do
+  subject.errors.on(:$1).should_not be_blank
+end
