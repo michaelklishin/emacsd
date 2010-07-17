@@ -1,0 +1,3 @@
+# name: (is (= a b) "Description")
+# --
+(is (= $1 $2) "${3:meaningful assertion description}")
