@@ -1,0 +1,4 @@
+# name: (deftest ...)
+# --
+(deftest t-${1:some-function}
+  $0)
