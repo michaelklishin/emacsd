@@ -1,0 +1,3 @@
+# name: (first seq)
+# --
+(first ${1:seq})$0
