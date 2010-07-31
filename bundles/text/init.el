@@ -49,7 +49,15 @@
   (interactive)
   (indent-region (point-min) (point-max)))
 
-(add-hook 'before-save-hook 'untabify-buffer t)      
+(add-hook 'before-save-hook 'untabify-buffer t)
+
+(defun wipe-out-all-buffers ()
+  "Kills all active buffers"
+  (interactive)
+  (if (yes-or-no-p "Are you sure you want to kill _all_ buffers?")
+      (dolist (i (buffer-list))
+        (kill-buffer i))))
+
 
 ;;
 ;; FFAP and others

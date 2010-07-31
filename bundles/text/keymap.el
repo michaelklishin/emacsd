@@ -12,3 +12,4 @@
 
 ;; Bind rgrep to `\C-c\C-l'
 (global-set-key "\C-c\C-l" 'rgrep)
+(global-set-key "\C-x\M-k" 'wipe-out-all-buffers)
