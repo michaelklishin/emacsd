@@ -69,4 +69,4 @@
 (elbundle/load-elbundle "eshell")
 
 (elbundle/load-elbundle "ack")
-(elbundle/load-elbundle "tabbar")
+;; (elbundle/load-elbundle "tabbar")
