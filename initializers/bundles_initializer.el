@@ -64,9 +64,6 @@
 (elbundle/load-elbundle "emacs")
 
 ;; (elbundle/load-elbundle "apache-mode")
-;; (elbundle/load-elbundle "erlang")
+(elbundle/load-elbundle "erlang")
 ;; (elbundle/load-elbundle "color_themes")
-(elbundle/load-elbundle "eshell")
-
 (elbundle/load-elbundle "ack")
-;; (elbundle/load-elbundle "tabbar")
