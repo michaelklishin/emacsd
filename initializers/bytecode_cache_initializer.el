@@ -1,3 +1,4 @@
+
 ;;; byte-code-cache.el --- Compile files as they're used
 
 ;; $Id: byte-code-cache.el 17 2007-11-16 12:13:42Z quotemstr $
@@ -237,7 +238,7 @@ ORIGNAME. NOERROR and NOMESSAGE mean what they do for LOAD."
   ;; This function is on the fast path, and it needs to be re-entrant.
   (if (null (file-readable-p cachename))
       (and (null noerror)
-	   (signal 'file-error (list "Cannot open load file" cachename)))
+     (signal 'file-error (list "Cannot open load file" cachename)))
 
     (let* ((default-major-mode 'fundamental-mode)
            (default-enable-multibyte-characters nil)
