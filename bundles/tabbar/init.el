@@ -1,2 +1,0 @@
-(require 'tabbar)
-(tabbar-mode)

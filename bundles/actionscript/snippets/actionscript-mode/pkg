@@ -1,6 +1,0 @@
-#-*- require-final-newline: nil -*-
-#name : package
-# --
-package ${1:name} {
-  $0
-}

@@ -1,1 +1,0 @@
-(load "javascript-mode")
