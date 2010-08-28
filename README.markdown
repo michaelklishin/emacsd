@@ -10,11 +10,4 @@ Add the following code to you ~/.emacs
     (add-to-list 'load-path "~/.emacs.d")
     (add-to-list 'load-path emacsd-dir)
 
-    ;; These MUST be loaded first
-    (defvar byte-compile-warnings t)
-    (defvar byte-compile-verbose t)
-    ;;(load "byte-code-cache")
-
     (load "boot")
-
-    (put 'set-goal-column 'disabled nil)
