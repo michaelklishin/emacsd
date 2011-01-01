@@ -1,5 +1,7 @@
 (setq custom-file (concat emacsd-dir "custom-variables.el"))
 
+(add-to-list 'load-path emacsd-dir)
+
 ;;
 ;; Initializers
 ;;
