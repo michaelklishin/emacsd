@@ -1,10 +1,3 @@
-(defvar datamapper-mode-dir "~/dev/emacs.d/programming/ruby/datamapper-mode/")
-(defvar merb-mode-dir "~/dev/emacs.d/programming/ruby/merb-mode/")
-
-(add-to-list 'load-path merb-mode-dir)
-(add-to-list 'load-path datamapper-mode-dir)
- 
-
 (load "inf-ruby")
 (load "ruby-mode")
 (load "ruby-electric")
@@ -16,7 +9,6 @@
 ;; Ruby C VM style
 (load "ruby-style")
 ;;(load "autotest")
-;; TODO: add DataMapper library.
 (setq auto-mode-alist  (cons '("\\.rb$" . ruby-mode) auto-mode-alist))
 
 (defun rake (task)
