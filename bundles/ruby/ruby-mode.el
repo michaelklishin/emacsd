@@ -1,9 +1,50 @@
-;;;
-;;;  ruby-mode.el -
-;;;
-;;;  $Author$
-;;;  created at: Fri Feb  4 14:49:13 JST 1994
-;;;
+;;; ruby-mode.el --- Major mode for editing Ruby files
+
+;; Copyright (C) 1994, 1995, 1996 1997, 1998, 1999, 2000, 2001,
+;;   2002,2003, 2004, 2005, 2006, 2007, 2008
+;;   Free Software Foundation, Inc.
+
+;; Authors: Yukihiro Matsumoto, Nobuyoshi Nakada
+;; URL: http://www.emacswiki.org/cgi-bin/wiki/RubyMode
+;; Created: Fri Feb  4 14:49:13 JST 1994
+;; Keywords: languages ruby
+;; Version: 0.9
+
+;; This file is not part of GNU Emacs. However, a newer version of
+;; ruby-mode is included in recent releases of GNU Emacs (version 23
+;; and up), but the new version is not guaranteed to be compatible
+;; with older versions of Emacs or XEmacs. This file is the last
+;; version that aims to keep this compatibility.
+
+;; You can also get the latest version from the Emacs Lisp Package
+;; Archive: http://tromey.com/elpa
+
+;; This file is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; It is distributed in the hope that it will be useful, but WITHOUT
+;; ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+;; or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+;; License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with it.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; Provides font-locking, indentation support, and navigation for Ruby code.
+;;
+;; If you're installing manually, you should add this to your .emacs
+;; file after putting it on your load path:
+;;
+;;    (autoload 'ruby-mode "ruby-mode" "Major mode for ruby files" t)
+;;    (add-to-list 'auto-mode-alist '("\\.rb$" . ruby-mode))
+;;    (add-to-list 'interpreter-mode-alist '("ruby" . ruby-mode))
+;;
+
+;;; Code:
 
 (defconst ruby-mode-revision "$Revision$"
   "Ruby mode revision string.")
@@ -80,13 +121,15 @@
                (match-string 6)))))
 
 (defun ruby-here-doc-beg-match ()
-  (let ((contents (regexp-quote (concat (match-string 2) (match-string 3)))))
+  (let ((contents (concat
+		   (regexp-quote (concat (match-string 2) (match-string 3)))
+		   (if (string= (match-string 3) "_") "\\B" "\\b"))))
     (concat "<<"
             (let ((match (match-string 1)))
               (if (and match (> (length match) 0))
                   (concat "\\(?:-\\([\"']?\\)\\|\\([\"']\\)" (match-string 1) "\\)"
-                          contents "\\b\\(\\1\\|\\2\\)")
-                (concat "-?\\([\"']\\|\\)" contents "\\b\\1"))))))
+                          contents "\\(\\1\\|\\2\\)")
+                (concat "-?\\([\"']\\|\\)" contents "\\1"))))))
 
 (defconst ruby-delimiter
   (concat "[?$/%(){}#\"'`.:]\\|<<\\|\\[\\|\\]\\|\\<\\("
@@ -254,6 +297,7 @@ Also ignores spaces after parenthesis when 'space."
 
 (defun ruby-mode-variables ()
   (set-syntax-table ruby-mode-syntax-table)
+  (setq show-trailing-whitespace t)
   (setq local-abbrev-table ruby-mode-abbrev-table)
   (make-local-variable 'indent-line-function)
   (setq indent-line-function 'ruby-indent-line)
@@ -299,7 +343,7 @@ Also ignores spaces after parenthesis when 'space."
                             (cdr (assq coding-system ruby-encoding-map)))
                        coding-system))
                 "ascii-8bit"))
-        (if (looking-at "^#![^\n]*ruby") (beginning-of-line 2))
+        (if (looking-at "^#!") (beginning-of-line 2))
         (cond ((looking-at "\\s *#.*-\*-\\s *\\(en\\)?coding\\s *:\\s *\\([-a-z0-9_]*\\)\\s *\\(;\\|-\*-\\)")
                (unless (string= (match-string 2) coding-system)
                  (goto-char (match-beginning 2))
@@ -607,7 +651,7 @@ The variable ruby-indent-level controls the amount of indentation.
        ((looking-at ":\\(['\"]\\)")
         (goto-char (match-beginning 1))
         (ruby-forward-string (buffer-substring (match-beginning 1) (match-end 1)) end))
-       ((looking-at ":\\([-,.+*/%&|^~<>]=?\\|===?\\|<=>\\)")
+       ((looking-at ":\\([-,.+*/%&|^~<>]=?\\|===?\\|<=>\\|![~=]?\\)")
         (goto-char (match-end 0)))
        ((looking-at ":\\([a-zA-Z_][a-zA-Z_0-9]*[!?=]?\\)?")
         (goto-char (match-end 0)))
@@ -930,6 +974,7 @@ An end of a defun is found by moving forward from the beginning of one."
       (condition-case nil
           (while (> i 0)
             (skip-syntax-forward " ")
+            (if (looking-at ",\\s *") (goto-char (match-end 0)))
             (cond ((looking-at "\\?\\(\\\\[CM]-\\)*\\\\?\\S ")
                    (goto-char (match-end 0)))
                   ((progn
@@ -1141,7 +1186,7 @@ balanced expression is found."
           ;; ?' ?" ?` are ascii codes
           ("\\(^\\|[^\\\\]\\)\\(\\\\\\\\\\)*[?$]\\([#\"'`]\\)" 3 (1 . nil))
           ;; regexps
-          ("\\(^\\|[=(,~?:;<>]\\|\\(^\\|\\s \\)\\(if\\|elsif\\|unless\\|while\\|until\\|when\\|and\\|or\\|&&\\|||\\)\\|g?sub!?\\|scan\\|split!?\\)\\s *\\(/\\)[^/\n\\\\]*\\(\\\\.[^/\n\\\\]*\\)*\\(/\\)"
+          ("\\(^\\|[[=(,~?:;<>]\\|\\(^\\|\\s \\)\\(if\\|elsif\\|unless\\|while\\|until\\|when\\|and\\|or\\|&&\\|||\\)\\|g?sub!?\\|scan\\|split!?\\)\\s *\\(/\\)[^/\n\\\\]*\\(\\\\.[^/\n\\\\]*\\)*\\(/\\)"
            (4 (7 . ?/))
            (6 (7 . ?/)))
           ("^\\(=\\)begin\\(\\s \\|$\\)" 1 (7 . nil))
@@ -1347,8 +1392,9 @@ buffer position `limit' or the end of the buffer."
      '("\\(^\\|[^_]\\)\\b\\([A-Z]+\\(\\w\\|_\\)*\\)"
        2 font-lock-type-face)
      ;; symbols
-     '("\\(^\\|[^:]\\)\\(:\\([-+~]@?\\|[/%&|^`]\\|\\*\\*?\\|<\\(<\\|=>?\\)?\\|>[>=]?\\|===?\\|=~\\|\\[\\]=?\\|\\(\\w\\|_\\)+\\([!?=]\\|\\b_*\\)\\|#{[^}\n\\\\]*\\(\\\\.[^}\n\\\\]*\\)*}\\)\\)"
+     '("\\(^\\|[^:]\\)\\(:\\([-+~]@?\\|[/%&|^`]\\|\\*\\*?\\|<\\(<\\|=>?\\)?\\|>[>=]?\\|===?\\|=~\\|![~=]?\\|\\[\\]=?\\|\\(\\w\\|_\\)+\\([!?=]\\|\\b_*\\)\\|#{[^}\n\\\\]*\\(\\\\.[^}\n\\\\]*\\)*}\\)\\)"
        2 font-lock-reference-face)
+     '("\\(^\\s *\\|[\[\{\(,]\\s *\\|\\sw\\s +\\)\\(\\(\\sw\\|_\\)+\\):[^:]" 2 font-lock-reference-face)
      ;; expression expansion
      '("#\\({[^}\n\\\\]*\\(\\\\.[^}\n\\\\]*\\)*}\\|\\(\\$\\|@\\|@@\\)\\(\\w\\|_\\)+\\)"
        0 font-lock-variable-name-face t)
@@ -1377,9 +1423,5 @@ buffer position `limit' or the end of the buffer."
      ("^__END__" nil label))))
  )
 
-(defun ruby-newline-and-indent ()
-  (interactive)
-  (newline)
-  (ruby-indent-command))
 
 (provide 'ruby-mode)
