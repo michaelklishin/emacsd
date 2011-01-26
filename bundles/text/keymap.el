@@ -40,3 +40,6 @@
     (mac-use-option-as-meta)))
 
 (global-set-key "\C-c§" 'mac-flip-meta-key)
+
+;; default
+(mac-use-option-as-meta)
