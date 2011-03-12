@@ -37,7 +37,7 @@
 (put 'downcase-region 'disabled nil)
 (put 'narrow-to-region 'disabled nil)
 
-(ns-toggle-fullscreen)
+;; (ns-toggle-fullscreen)
 
 ;;
 ;; Buffer operations
