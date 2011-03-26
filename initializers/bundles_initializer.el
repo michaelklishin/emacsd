@@ -2,9 +2,11 @@
 ;; bundles
 ;;
 
+(defun elbundle/path-of (bundle-name)
+  (concat emacsd-dir "bundles/" bundle-name "/"))
+
 (defmacro elbundle/load-elbundle (bundle-name)
-  (let* ((bundle-dir
-          (concat emacsd-dir "bundles/" bundle-name "/"))
+  (let* ((bundle-dir (elbundle/path-of bundle-name)
         (bundle-init-file (concat bundle-dir "init"))
         (bundle-keymap-file (concat bundle-dir "keymap"))
         (bundle-grammar-file (concat bundle-dir "grammar")))
@@ -42,6 +44,7 @@
 (elbundle/load-elbundle "scala")
 (elbundle/load-elbundle "clojure")
 (elbundle/load-elbundle "slime")
+(elbundle/load-elbundle "ocaml")
 ;; (elbundle/load-elbundle "haskell")
 (elbundle/load-elbundle "perl")
 (elbundle/load-elbundle "javascript")
