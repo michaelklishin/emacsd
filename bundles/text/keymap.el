@@ -49,4 +49,4 @@
 ;; Full-screen mode on Cocoa
 ;;
 
-(global-set-key "\C-i" 'ns-toggle-fullscreen)
+(global-set-key "\C-\c\C-f\C-s" 'ns-toggle-fullscreen)
