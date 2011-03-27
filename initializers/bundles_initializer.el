@@ -6,12 +6,12 @@
   (concat emacsd-dir "bundles/" bundle-name "/"))
 
 (defmacro elbundle/load-elbundle (bundle-name)
-  (let* ((bundle-dir (elbundle/path-of bundle-name)
+  (let* ((bundle-dir (elbundle/path-of bundle-name))
         (bundle-init-file (concat bundle-dir "init"))
         (bundle-keymap-file (concat bundle-dir "keymap"))
         (bundle-grammar-file (concat bundle-dir "grammar")))
     ;; let* body
-    (message "Adding %s to load-path..." bundle-dir)
+    ;; (message "Adding %s to load-path..." bundle-dir)
      (add-to-list 'load-path bundle-dir)
      (load bundle-init-file)
      ;; don't break if keymap or grammar are not found
