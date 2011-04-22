@@ -32,6 +32,6 @@
 (add-to-list 'load-path "~/emacsd/bundles/color_themes")
 (require 'color-theme)
 
-;; load twilight theme
+;; load color theme
 (load "themes/vibrant-ink")
 (color-theme-vibrant-ink)
