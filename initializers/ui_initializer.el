@@ -12,7 +12,7 @@
 
 
 ;;
-;; ==== Widgets, controls, menus, toolbars
+;; Widgets, controls, menus, toolbars
 ;; 
 
 ;; no damn scrollbar, toolbar
@@ -33,5 +33,5 @@
 (require 'color-theme)
 
 ;; load twilight theme
-(load "themes/twilight")
-(color-theme-twilight)
+(load "themes/vibrant-ink")
+(color-theme-vibrant-ink)
