@@ -22,6 +22,8 @@
 (add-to-list 'load-path "bundles")
 
 (elbundle/load-elbundle "text")
+(elbundle/load-elbundle "textile")
+(elbundle/load-elbundle "markdown")
 (elbundle/load-elbundle "emacs-lisp")
 ;; (elbundle/load-elbundle "etest")
 
@@ -53,7 +55,6 @@
 (elbundle/load-elbundle "yaml")
 (elbundle/load-elbundle "haml")
 (elbundle/load-elbundle "xml")
-(elbundle/load-elbundle "markdown")
 
 (elbundle/load-elbundle "far-search")
 (elbundle/load-elbundle "find-recursive")
