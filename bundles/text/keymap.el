@@ -14,6 +14,8 @@
 (global-set-key "\C-c\C-l" 'rgrep)
 (global-set-key "\C-x\M-k" 'wipe-out-all-buffers)
 
+(global-set-key (kbd "C-S-k") 'delete-region)
+
 
 ;;
 ;; Option or Command as Meta
