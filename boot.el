@@ -30,5 +30,6 @@
 (load-initializer "ui")
 (load-initializer "ido")
 (load-initializer "bundles")
+(load-initializer "scratches")
 
 (load "custom-variables")
