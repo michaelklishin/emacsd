@@ -29,6 +29,8 @@
 ;; yes, use transient mark mode
 (transient-mark-mode t)
 
+(setq fill-column 79)
+
 (add-to-list 'load-path "~/emacsd/bundles/color_themes")
 (require 'color-theme)
 
