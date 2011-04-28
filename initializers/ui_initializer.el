@@ -37,3 +37,10 @@
 ;; load color theme
 (load "themes/vibrant-ink")
 (color-theme-vibrant-ink)
+
+;;
+;; Full-screen mode on Cocoa
+;;
+
+(global-set-key "\C-\c\C-f\C-s" 'ns-toggle-fullscreen)
+;; (ns-toggle-fullscreen)

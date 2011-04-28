@@ -45,10 +45,3 @@
 
 ;; default
 (mac-use-option-as-meta)
-
-
-;;
-;; Full-screen mode on Cocoa
-;;
-
-(global-set-key "\C-\c\C-f\C-s" 'ns-toggle-fullscreen)
