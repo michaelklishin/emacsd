@@ -40,6 +40,7 @@
 
 (elbundle/load-elbundle "c")
 (elbundle/load-elbundle "cpp")
+(elbundle/load-elbundle "golang")
 (elbundle/load-elbundle "sql")
 (elbundle/load-elbundle "erlang")
 (elbundle/load-elbundle "python")
