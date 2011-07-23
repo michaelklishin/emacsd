@@ -1,9 +1,9 @@
 ;; This is needed for Erlang mode setup
-(setq erlang-root-dir "/usr/local/Cellar/erlang/R14B02/")
-(setq load-path (cons "/usr/local/Cellar/erlang/R14B02/lib/erlang/lib/tools-2.6.6.3/emacs/" load-path))
-(setq exec-path (cons "/usr/local/Cellar/erlang/R14B02/bin/" exec-path))
+(setq erlang-root-dir "/usr/local/Cellar/erlang/R14B03/")
+(setq load-path (cons "/usr/local/Cellar/erlang/R14B03/lib/erlang/lib/tools-2.6.6.4/emacs/" load-path))
+(setq exec-path (cons "/usr/local/Cellar/erlang/R14B03/bin/" exec-path))
 
-(setq erlang-root-dir "/usr/local/Cellar/erlang/R14B02")
+(setq erlang-root-dir "/usr/local/Cellar/erlang/R14B03")
 
 (require 'erlang-start)
 (require 'erlang)
@@ -24,3 +24,6 @@
 
 ;; load bundle snippets
 ;; (yas/load-directory "~/Tools/emacsd.git/bundles/erlang/snippets/")
+
+
+(add-to-list 'auto-mode-alist '("\\.src$" . erlang-mode))
