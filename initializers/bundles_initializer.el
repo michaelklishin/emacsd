@@ -24,6 +24,13 @@
 (elbundle/load-elbundle "text")
 (elbundle/load-elbundle "textile")
 (elbundle/load-elbundle "markdown")
+
+(elbundle/load-elbundle "slime")
+(elbundle/load-elbundle "clojure")
+
+
+(elbundle/load-elbundle "ruby")
+
 (elbundle/load-elbundle "emacs-lisp")
 ;; (elbundle/load-elbundle "etest")
 
@@ -33,10 +40,6 @@
 (elbundle/load-elbundle "git")
 (elbundle/load-elbundle "hg")
 
-(elbundle/load-elbundle "slime")
-(elbundle/load-elbundle "clojure")
-
-(elbundle/load-elbundle "ruby")
 (elbundle/load-elbundle "rspec")
 (elbundle/load-elbundle "cucumber")
 (elbundle/load-elbundle "rake")
