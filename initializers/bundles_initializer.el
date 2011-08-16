@@ -33,6 +33,9 @@
 (elbundle/load-elbundle "git")
 (elbundle/load-elbundle "hg")
 
+(elbundle/load-elbundle "slime")
+(elbundle/load-elbundle "clojure")
+
 (elbundle/load-elbundle "ruby")
 (elbundle/load-elbundle "rspec")
 (elbundle/load-elbundle "cucumber")
@@ -45,8 +48,7 @@
 (elbundle/load-elbundle "erlang")
 (elbundle/load-elbundle "python")
 (elbundle/load-elbundle "scala")
-(elbundle/load-elbundle "clojure")
-(elbundle/load-elbundle "slime")
+
 (elbundle/load-elbundle "ocaml")
 ;; (elbundle/load-elbundle "haskell")
 (elbundle/load-elbundle "perl")
