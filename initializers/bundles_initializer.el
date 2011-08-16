@@ -33,8 +33,8 @@
 (elbundle/load-elbundle "git")
 (elbundle/load-elbundle "hg")
 
-(elbundle/load-elbundle "clojure")
 (elbundle/load-elbundle "slime")
+(elbundle/load-elbundle "clojure")
 
 (elbundle/load-elbundle "ruby")
 (elbundle/load-elbundle "rspec")
