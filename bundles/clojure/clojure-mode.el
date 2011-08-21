@@ -136,7 +136,7 @@ Clojure to load that file."
 This holds a cons cell of the form `(DIRECTORY . FILE)'
 describing the last `clojure-load-file' or `clojure-compile-file' command.")
 
-(defvar clojure-test-ns-segment-position -1
+(defvar clojure-test-ns-segment-position 1
   "Which segment of the ns is \"test\" inserted in your test name convention.
 
 Customize this depending on your project's conventions. Negative

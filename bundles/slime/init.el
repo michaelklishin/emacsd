@@ -6,5 +6,10 @@
 
 (setq inferior-lisp-program "/usr/local/bin/clj")
 
+(setq swank-clojure-jar-path "~/Tools/clojure-snapshot/clojure.jar")
+(require 'swank-clojure-autoload)
+
+
+
 (require 'slime)
 (slime-setup)
