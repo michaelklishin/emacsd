@@ -3,14 +3,13 @@
 class ${1:ObjectMemory}
 
   #
-  # Behaviors
-  #
-
-  $2
-
-  #
   # API
   #
 
   $0
+
+  #
+  # Implementation
+  #
+
 end # $1
