@@ -42,4 +42,4 @@
     (mac-use-option-as-meta)))
 
 ;; default
-(mac-use-option-as-meta)
+(mac-use-command-as-meta)
