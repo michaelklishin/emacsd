@@ -53,7 +53,7 @@
 (elbundle/load-elbundle "scala")
 
 (elbundle/load-elbundle "ocaml")
-;; (elbundle/load-elbundle "haskell")
+(elbundle/load-elbundle "haskell")
 (elbundle/load-elbundle "perl")
 (elbundle/load-elbundle "javascript")
 (elbundle/load-elbundle "shell-script")
