@@ -1,4 +1,4 @@
->;;
+;;
 ;; On Mac, windows system is ns (next step, origin of Cocoa),
 ;; and on Linux it is x. In terminal, though, it is nil so
 ;; it is a good way to detect if we are running in a shell
