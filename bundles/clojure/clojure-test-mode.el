@@ -1,10 +1,10 @@
 ;;; clojure-test-mode.el --- Minor mode for Clojure tests
 
-;; Copyright (C) 2009-2011 Phil Hagelberg
+;; Copyright © 2009-2011 Phil Hagelberg
 
 ;; Author: Phil Hagelberg <technomancy@gmail.com>
 ;; URL: http://emacswiki.org/cgi-bin/wiki/ClojureTestMode
-;; Version: 1.5.6
+;; Version: 1.6.0
 ;; Keywords: languages, lisp, test
 ;; Package-Requires: ((slime "20091016") (clojure-mode "1.7"))
 
@@ -101,6 +101,11 @@
 ;; 1.5.6 2011-06-15
 ;;  * Remove heinous clojure.test/report monkeypatch.
 
+;; 1.6.0 2011-11-06
+;;  * Compatibility with Clojure 1.3.
+;;  * Support narrowing.
+;;  * Fix a bug in clojure-test-mode-test-one-in-ns.
+
 ;;; TODO:
 
 ;; * Prefix arg to jump-to-impl should open in other window
@@ -189,7 +194,7 @@
                                                    ((file-position 3) 1)
                                                    (:line event)))])))
      (binding [*test-out* *out*]
-       ((.getRoot #'clojure.test/report) event)))
+       ((.getRawRoot #'clojure.test/report) event)))
 
    (defn clojure-test-mode-test-one-var [test-ns test-name]
      (let [v (ns-resolve test-ns test-name)
@@ -425,7 +430,7 @@ Retuns the problem overlay if such a position is found, otherwise nil."
 ;;;###autoload
 (progn
   (defun clojure-test-maybe-enable ()
-    "Enable clojure-test-mode if the current buffer contains a namespace 
+    "Enable clojure-test-mode if the current buffer contains a namespace
 with a \"test.\" bit on it."
     (let ((ns (clojure-find-package))) ; defined in clojure-mode.el
       (when (search "test." ns)

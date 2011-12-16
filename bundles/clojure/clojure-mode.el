@@ -6,7 +6,7 @@
 ;;          Lennart Staflin <lenst@lysator.liu.se>
 ;;          Phil Hagelberg <technomancy@gmail.com>
 ;; URL: http://github.com/technomancy/clojure-mode
-;; Version: 1.10.0
+;; Version: 1.11.3
 ;; Keywords: languages, lisp
 
 ;; This file is not part of GNU Emacs.
@@ -136,7 +136,7 @@ Clojure to load that file."
 This holds a cons cell of the form `(DIRECTORY . FILE)'
 describing the last `clojure-load-file' or `clojure-compile-file' command.")
 
-(defvar clojure-test-ns-segment-position 1
+(defvar clojure-test-ns-segment-position -1
   "Which segment of the ns is \"test\" inserted in your test name convention.
 
 Customize this depending on your project's conventions. Negative
@@ -147,7 +147,7 @@ numbers count from the end:
 
 (defun clojure-mode-version ()
   "Currently package.el doesn't support prerelease version numbers."
-  "1.10.0")
+  "1.11.3")
 
 ;;;###autoload
 (defun clojure-mode ()
@@ -182,6 +182,7 @@ if that value is non-nil."
          'clojure-forward-sexp))
   (set (make-local-variable 'lisp-doc-string-elt-property)
        'clojure-doc-string-elt)
+  (set (make-local-variable 'inferior-lisp-program) "lein repl")
 
   (clojure-mode-font-lock-setup)
 
@@ -411,7 +412,7 @@ elements of a def* forms."
         "enumeration-seq" "eval" "even?" "every?"
         "extend" "extend-protocol" "extend-type" "extends?" "extenders"
         "false?" "ffirst" "file-seq" "filter" "find" "find-doc"
-        "find-ns" "find-var" "first" "float" "float-array"
+        "find-ns" "find-var" "first" "flatten" "float" "float-array"
         "float?" "floats" "flush" "fn" "fn?"
         "fnext" "for" "force" "format" "future"
         "future-call" "future-cancel" "future-cancelled?" "future-done?" "future?"
@@ -471,7 +472,7 @@ elements of a def* forms."
         "var?" "vary-meta" "vec" "vector" "vector?"
         "when" "when-first" "when-let" "when-not" "while"
         "with-bindings" "with-bindings*" "with-in-str" "with-loading-context" "with-local-vars"
-        "with-meta" "with-open" "with-out-str" "with-precision" "xml-seq"
+        "with-meta" "with-open" "with-out-str" "with-precision" "xml-seq" "zipmap"
         ) t)
          "\\>")
        1 font-lock-variable-name-face)
@@ -849,7 +850,32 @@ use (put-clojure-indent 'some-symbol 'defun)."
 
 (defvar clojure-project-root-file "project.clj")
 
-(defvar clojure-swank-command "lein jack-in %s")
+;; Pipe to $SHELL to work around mackosecks GUI Emacs $PATH issues.
+(defcustom clojure-swank-command 
+  (if (or (locate-file "lein" exec-path) (locate-file "lein.bat" exec-path))
+      "lein jack-in %s"
+    "echo \"lein jack-in %s\" | $SHELL -l")
+  "The command used to start swank via clojure-jack-in."
+  :type 'string
+  :group 'clojure-mode)
+
+(defun clojure-jack-in-sentinel (process event)
+  (let ((debug-on-error t))
+    (error "Could not start swank server: %s"
+           (with-current-buffer (process-buffer process)
+             (buffer-substring (point-min) (point-max))))))
+
+(defun clojure-eval-bootstrap-region (process)
+  "Eval only the elisp in between the markers."
+  (with-current-buffer (process-buffer process)
+    (save-excursion
+      (goto-char 0)
+      (search-forward ";;; Bootstrapping bundled version of SLIME")
+      (let ((begin (point)))
+        (when (not (search-forward ";;; Done bootstrapping." nil t))
+          ;; fall back to possibly-ambiguous string if above isn't found
+          (search-forward "(run-hooks 'slime-load-hook) ; on port"))
+        (eval-region begin (point))))))
 
 ;;;###autoload
 (defun clojure-jack-in ()
@@ -857,26 +883,24 @@ use (put-clojure-indent 'some-symbol 'defun)."
   (setq slime-net-coding-system 'utf-8-unix)
   (lexical-let ((port (- 65535 (mod (caddr (current-time)) 4096)))
                 (dir default-directory))
+    (when (and (functionp 'slime-disconnect) (slime-current-connection))
+      (slime-disconnect))
     (when (get-buffer "*swank*")
       (kill-buffer "*swank*"))
     (let* ((swank-cmd (format clojure-swank-command port))
            (proc (start-process-shell-command "swank" "*swank*" swank-cmd)))
+      (set-process-sentinel (get-buffer-process "*swank*")
+                            'clojure-jack-in-sentinel)
       (set-process-filter (get-buffer-process "*swank*")
                           (lambda (process output)
-                            (with-current-buffer "*swank*"
+                            (with-current-buffer (process-buffer process)
                               (insert output))
                             (when (string-match "proceed to jack in" output)
-                              (with-current-buffer "*swank*"
-                                (kill-region (save-excursion
-                                               (goto-char (point-max))
-                                               (search-backward "slime-load-hook")
-                                               (forward-line)
-                                               (point))
-                                             (point-max)))
-                              (eval-buffer "*swank*")
+                              (clojure-eval-bootstrap-region process)
                               (slime-connect "localhost" port)
                               (with-current-buffer (slime-output-buffer t)
                                 (setq default-directory dir))
+                              (set-process-sentinel process nil)
                               (set-process-filter process nil))))))
   (message "Starting swank server..."))
 
@@ -931,7 +955,7 @@ use (put-clojure-indent 'some-symbol 'defun)."
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.clj$" . clojure-mode))
-(add-to-list 'auto-mode-alist '("\\.cljs$" . clojure-mode))
+(add-to-list 'interpreter-mode-alist '("jark" . clojure-mode))
 (add-to-list 'interpreter-mode-alist '("cake" . clojure-mode))
 
 (provide 'clojure-mode)

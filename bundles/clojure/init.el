@@ -5,7 +5,7 @@
 (require 'highlight-parentheses)
 
 ;; load bundle snippets
-;; (yas/load-directory "~/emacsd/bundles/clojure/snippets")
+(yas/load-directory "~/emacsd/bundles/clojure/snippets")
 
 (highlight-parentheses-mode)
 ;; (paredit-mode)
