@@ -1,0 +1,5 @@
+# name: (defprotocol ...)
+# --
+(defprotocol ${1:protocol-name}
+  (${2:function-name} [${3:arguments}] "${4:docstring}")$0)
+
