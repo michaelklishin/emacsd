@@ -6,10 +6,7 @@
 ;;  Behavior
 ;;
 
-;; Use TextMate behavior for braces, quotes and so forth.
-;; It is very convenient.
-;; (require 'textmate)
-;; (textmate-mode)
+;; ...
 
 ;;
 ;;  Clipboard
