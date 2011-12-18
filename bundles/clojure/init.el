@@ -1,3 +1,6 @@
+;; a workaround for a possible Emacs 23.1 bug. MK.
+(setq warning-suppress-types nil)
+
 (require 'clojure-mode)
 (require 'clojure-test-mode)
 
