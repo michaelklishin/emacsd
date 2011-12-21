@@ -1,6 +1,5 @@
 # name: (defn ...)
 # --
 (defn ${1:function-name}
-  "${2:docstring}"
-  [${3:arguments}]
+  [${2:arguments}]
   $0)

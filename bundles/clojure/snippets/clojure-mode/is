@@ -1,3 +1,3 @@
 # name: (is ...)
 # --
-(is $1 "${2:meaningful assertion description}")
+(is $1$0)
