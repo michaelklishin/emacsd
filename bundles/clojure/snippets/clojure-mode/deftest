@@ -1,4 +1,4 @@
 # name: (deftest ...)
 # --
-(deftest t-${1:some-function}
+(deftest test-${1:some-behavior}
   $0)
