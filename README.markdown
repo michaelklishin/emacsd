@@ -1,7 +1,8 @@
-Installation
-============
+# emacsd
 
-Clone this repo to ~/emacsd dir.
+## Installation
+
+Clone this repo to ~/emacsd.
 
 Add the following code to you ~/.emacs
 
