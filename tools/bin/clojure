@@ -1,3 +1,0 @@
-#!/usr/bin/env zsh
-
-java -client -jar "$(dirname -- "$0")/../lib/jar/clojure.jar" $@
