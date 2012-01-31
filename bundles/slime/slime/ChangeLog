@@ -1,3 +1,3484 @@
+2012-01-06  Helmut Eller  <heller@common-lisp.net>
+
+	Add a "sentinel thread" to protect access to global lists.
+
+	* swank.lisp (start-sentinel, sentinel, send-to-sentinel)
+	(sentinel-serve, sentinel-stop-server, sentinel-maybe-exit): New.
+	(make-connection, close-connection, setup-server, stop-server):
+	Use the sentinel.
+	(close-connection%): Factored out.
+	* swank-backend.lisp (register-thread, find-registered): New.
+	* swank-allegro.lisp: Implement it.
+	* swank-ccl.lisp:
+	* swank-lispworks.lisp:
+	* swank-sbcl.lisp:
+
+2012-01-02  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-loader.lisp (lisp-version-string): Append -no-threads to
+	SBCL without threads.
+
+2011-12-24  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-init-command): Don't call
+	`slime-to-lisp-filename', the lisp is not yet connected and if
+	there's another connection it will use the wrong translation.
+
+2011-12-24  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (throw-to-toplevel): If *sldb-quit-restart* is not
+	found, try to invoke the last restart, which usually is a
+	top-level abort restart. This is useful when the debugger is
+	invoked from a non-slime thread.
+
+2011-12-23  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-cycle-connections): Add
+	`slime-cycle-connections-hook', to be used by slime-repl.
+
+2011-12-21  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-sbcl.lisp (input-ready-p): Don't use
+	sb-impl::fd-stream-fd-type if it's not present.
+
+2011-12-12  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-compile-region): Run slime-flash-region
+	directly, not from `slime-before-compile-functions', which is run
+	also for C-c C-k.
+
+2011-12-10  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (auto-flush-loop): Don't use call-with-io-timeout.
+	Removing it had no effect on the number of failed tests.  If you
+	want it back, first create a test case to demonstrate the problem.
+	* swank-backend.lisp: Mention that locks should only be used in
+	swank-gray.lisp.
+
+2011-12-10  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp: Move io-redirection to contrib/swank-repl.lisp.
+
+2011-12-10  Helmut Eller  <heller@common-lisp.net>
+
+	Make *active-threads* a slot of the connection struct.
+
+	* swank.lisp (*active-threads*): Deleted
+	([struct] multithreaded-connection): New slot active-threads.
+	(find-worker-thread, interrupt-worker-thread)
+	(thread-for-evaluation): Update accordingly.
+	(add-active-thread, remove-active-thread): New helpers.
+
+2011-12-10  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-loader.lisp (delete-stale-contrib-fasl-files): New.
+	(compile-contribs): Use it.
+
+2011-12-09  Helmut Eller  <heller@common-lisp.net>
+
+	Create an extra thread for the indentation cache.
+
+	* swank.lisp (indentation-cache-loop): New.
+	([struct] multithreaded-connection): New slot
+	indentation-cache-thread.
+	(control-thread, cleanup-connection-threads): Create/kill it.
+	(send-to-indentation-cache): New function.
+	(update-indentation-information, sync-indentation-to-emacs): Use
+	it.
+	(perform-indentation-update, update-indentation/delta-for-emacs):
+	Add package as argument; that used to be *buffer-package.  Can
+	again be simpler as the indentation-cache-thread doesn't share the
+	cache with others.
+	(handle-indentation-cache-request, symbol-packages): New helpers.
+
+2011-12-07  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (*slime-interrupts-enabled*): Describe the idea
+	behind the interrupt handling code a bit.
+
+2011-12-07  Helmut Eller  <heller@common-lisp.net>
+
+	Make *event-queue* and *events-enqueued* slots of the connection
+	struct.
+
+	* swank.lisp (*event-queue*, *events-enqueued*): Deleted
+	([struct] singlethreaded-connection): New slots event-queue and
+	events-enqueued.
+	(poll-for-event, send-event, wait-for-event/event-loop): Update
+	accordingly.
+
+2011-12-07  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el ([xemacs]): Use (find-coding-system 'utf-8-unix)
+	instead of checking the XEmacs version to decide when 'un-define
+	is required.
+
+2011-12-07  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (send-to-emacs): Add a without-slime-interrupts to
+	protect send/receive from arbitrary interrupts.
+
+2011-12-07  Helmut Eller  <heller@common-lisp.net>
+
+	Move flow control from dispatch-event to send-to-emacs.
+
+	* swank.lisp (*send-counter*): New thread local variable.
+	(with-connection): Bind it.
+	(send-to-emacs): Call maybe-slow-down.
+	(maybe-slow-down, ping-pong): Go through dispatch-event instead of
+	writing to the socket directly.
+	(dispatch-event): Re-add thread arg to :ping/:emacs-pong.
+	Also add a :test-delay event.
+	(perform-indentation-update): Use with-connection to bind
+	*emacs-connection* and *send-counter*.
+	(background-message): Remove reference to connection.slowdown.
+	(flow-control-test): New support code for testing flow-control.
+	([defstruct] connection): Delete send-counter and slowdown slots.
+
+	* slime.el (slime-dispatch-event): Re-add thread arg to
+	:ping/:emacs-pong and :test-delay event.
+	([test] flow-control): New test.
+
+2011-12-07  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (slime-update-system-indentation): Moved to
+	contrib/slime-indentation.el.
+
+2011-12-07  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (slime-batch-test): Forgot to rename slime-run-one-test
+	to slime-run-test here.
+	(slime-net-connect): Remove coding-system argument.
+	(slime-xref-insert-recompilation-flags): Use insert-char instead
+	of (dotimes (i ..) (insert " " ..)) to avoid the compiler warning.
+	([test] break, slime-forward-sexp): Use _i in dotimes.
+
+2011-12-07  Stas Boukarev  <stassats@gmail.com>
+
+	* doc/.cvsignore: Add html.tgz
+
+2011-12-07  Didier Verna  <didier@xemacs.org>
+
+	* doc/.cvsignore: Add more files generated by Texinfo (.kys, .fns
+	and .vrs).
+
+2011-12-05  Didier Verna  <didier@xemacs.org>
+
+	* slime.el ([xemacs]): Don't require 'un-define in XEmacs 21.5 and
+	later. Mule-UCS is not needed anymore because of internal Unicode
+	support (and conflicts with it).
+
+2011-12-06  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-compile-region): Check connection before running
+	hooks, invoking slime-flash-region doesn't make much sense when
+	there's no connection.
+
+2011-12-05  Helmut Eller  <heller@common-lisp.net>
+
+	Move flow control into dispatch-event.
+
+	* swank.lisp (maybe-slow-down, ping-pong): New functions.
+	(dispatch-event): Use it. Also require connection argument.
+	Update callers accordingly.
+	([defstruct] connection): New slots: send-counter and slowdown.
+	* slime.el (slime-dispatch-event): Drop thread from
+	:ping/:emacs-ping messages.
+
+	Use subclasses of connection.  Wasn't neccessary for flow control
+	but seems like a good idea for the future.
+
+	* swank.lisp (multithreaded-connection)
+	(singlethreaded-connection): New
+	(make-connection): Create multi/single threaded variant depending
+	on style argument.
+	([defstruct] serve-requests, cleanup): Delete slots.  Dispatch on
+	connection type instead.
+	(stop-serving-requests): New.
+	(close-connection): Use it.  Can't use
+	*use-dedicated-output-stream* here.
+
+	* swank.lisp (background-message): Do nothing if
+	connection.slowdown is set.
+
+2011-12-05  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el ([test] arglist): swank::create-server now has an
+	optional argument.  Use swank::compute-backtrace instead.
+
+2011-12-05  Stas Boukarev  <stassats@gmail.com>
+
+	* start-swank.lisp: Remove :coding-system argument.
+
+2011-12-04  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (interrupt-worker-thread): Don't use find-repl-thread
+	as fallback.
+
+2011-12-04  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp: Minor cleanups.
+	* swank-rpc.lisp:
+
+2011-12-04  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (create-repl): Moved to contrib/swank-repl.lisp.
+	(*use-dedicated-output-stream*, *dedicated-output-stream-port*
+	(*dedicated-output-stream-buffering*, open-streams)
+	(make-output-function, send-user-output)
+	(make-output-function-for-target, make-output-stream-for-target)
+	(open-dedicated-output-stream, find-repl-thread)
+	(spawn-repl-thread, repl-loop, initialize-streams-for-connection)
+	(read-user-input-from-emacs,  *listener-eval-function*)
+	(listener-eval, *send-repl-results-function*, repl-eval)
+	(clear-repl-variables, track-package, send-repl-results-to-emacs)
+	(redirect-trace-output);
+	* swank-loader.lisp (*contribs*): Add swank-repl.
+
+2011-12-04  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-loader.lisp (*contribs*): Add swank-mrepl.
+
+2011-12-04  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-rpc.lisp (read-chunk): Signal end-of-file we had no input.
+
+2011-12-03  Nikodemus Siivola  <nikodemus@random-state.net>
+
+	* swank-sbcl.lisp (wait-for-input): Another go at this. Rip out POLL,
+	build on top of just INPUT-READY-P.
+	(input-ready-p): Outside Windows, use SYSREAD-MAY-BLOCK-P to check.
+
+2011-12-03  Gábor Melis  <mega@retes.hu>
+
+	* swank-allegro.lisp (set-default-initial-binding): In 9.0 alpha,
+	*CL-DEFAULT-SPECIAL-BINDINGS* is [soon to be] deprecated.  It's
+	otherwise the same EXCL:*REQUIRED-TOP-LEVEL-BINDINGS* (i.e. no
+	change in behavior).
+
+2011-12-03  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-clisp.lisp (wait-for-input): Add a version for windows.
+
+2011-12-02  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-sbcl.lisp (wait-for-input): Define only if
+	#+os-provides-poll or #+win32.
+
+2011-12-02  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (listener-channel): Moved to contrib/swank-mrepl.lisp
+	(create-listener, initial-listener-bindings, spawn-listener-thread).
+
+2011-12-01  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-sbcl.lisp (wait-for-input): Call poll(2).
+	* swank-backend.lisp (wait-for-streams, wait-for-one-stream):
+	Deleted. Wouldn't work on binary streams.
+
+2011-12-01  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-loader.lisp (*contribs*): Add swank-util.
+
+2011-12-01  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-cmucl.lisp (method-location): Special case accessors.
+
+2011-11-29  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (do-symbols*, classify-symbol)
+	(symbol-classification-string): Moved to contrib/swank-util.lisp.
+
+2011-11-29  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (to-line): Increase default limit to 512.
+	(frame-locals-for-emacs): Let *print-right-margin* override
+	default line width.
+
+2011-11-27  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (create-server): Add a :backlog argument.
+	(setup-server): Pass it along.
+
+	* swank-backend.lisp (create-socket): Backlog argument.
+	* swank-abcl.lisp: Implement it.
+	* swank-allegro.lisp:
+	* swank-ccl.lisp:
+	* swank-clisp.lisp:
+	* swank-cmucl.lisp:
+	* swank-corman.lisp:
+	* swank-ecl.lisp:
+	* swank-lispworks.lisp:
+	* swank-sbcl.lisp:
+	* swank-scl.lisp:
+
+2011-11-27  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-cmucl.lisp (make-socket-io-stream): Create character
+	stream if external-format is non-nil.
+
+2011-11-27  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (create-server): Remove coding-system argument.
+	([defstruct] connection): Remove coding-system slot.
+	(connection.external-format, *coding-system*): Deleted.
+	(make-connection, start-server, create-server, setup-server)
+	(accept-connections): Drop coding-system arg.
+
+	(connection-info): Return supported coding systems.
+	(create-repl, open-dedicated-output-stream)
+	(open-streams, initialize-streams-for-connection): Add
+	coding-system arg.
+
+	* slime.el (slime-init-command): Ignore the coding-system arg.
+	(slime-connection-coding-systems): New connection variable.
+	(slime-set-connection-info): Set it.
+
+2011-11-27  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (eval-in-frame-aux): Don't bind *package* during
+	eval.
+
+2011-11-21  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-cmucl.lisp: Trigger compilation of utf8 stuff before first
+	real use.
+
+2011-11-21  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (*sldb-printer-bindings*): Removed.  Rather useless
+	since the change from 2009-02-26.  It could at best have some
+	influence on the way conditions are printed.  *sldb-string-length*
+	and *sldb-bitvector-length* where both nil so
+	*sldb-pprint-dispatch-table* was also not used by default.  In
+	summary, spending 3 pages for something that's not used by default
+	was pretty silly.  One variable less where we can get the defaults
+	wrong.
+
+2011-11-21  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (sldb-eval-in-frame): Try to figure the package out.
+	Ask Lisp if the function for frame was defined in a particular
+	package and use it to read the form.
+	(sldb-read-form-for-frame): New helper.
+
+	* swank-backend (frame-package): New.
+	* swank-cmucl (frame-package): Implement it.
+
+	* swank.lisp (frame-package-name, eval-in-frame-aux): New.
+	(eval-string-in-frame, pprint-eval-string-in-frame): Use package
+	argument.
+
+2011-11-19  Nikodemus Siivola  <nikodemus@random-state.net>
+
+	* swank-sbcl.lisp (restart-frame): Make it possible to restart
+	frames of anonymous functions -- at least some of the time.
+
+2011-11-16  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (open-dedicated-output-stream): Open a stream with
+	the right coding system.
+	Change (:open-dedicated-output-stream port) message to
+	(:open-dedicated-output-stream port coding-system), because Emacs
+	can no longer determine the coding system based on the main
+	network streams since they are binary now.
+
+2011-11-11  Anton Kovalenko  <anton@sw4me.com>
+
+	* slime.el (slime-ed): add bytep argument to destructure-case.
+	When it's true, position is interpreted as byte offset.
+
+2011-11-08  Helmut Eller  <heller@common-lisp.net>
+
+	Restore old header format.
+
+	* swank-rpc.lisp (parse-header, write-header)
+	* slime.el (slime-net-decode-length, slime-net-encode-length)
+
+2011-11-06  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-ecl.lisp (accept-connection): Fix buffering arg.
+	* swank-cmucl.lisp (accept-connection): Fix buffering arg.
+
+2011-11-06  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (slime-run-test): Renamed from slime-run-one-test.
+	(slime-toggle-test-debug-on-error): New.
+	([test] break): Longer timeouts.
+
+2011-11-06  Helmut Eller  <heller@common-lisp.net>
+
+	Add portable versions for string-to-utf8 and utf8-to-string.
+
+	* swank-backend.lisp (default-string-to-utf8)
+	(default-utf8-to-string): New.
+	(string-to-utf8, utf8-to-string): Use default implementations.
+
+	* swank-lispworks.lisp (make-flexi-stream): Restored.
+	(utf8-stream): Deleted.  The utf8 stuff is now used for the
+	default implementation of utf8-to-string and would cause name
+	clashes.
+
+2011-11-06  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-allegro.lisp (swank-compile-string): For reader errors
+	return nil not (values nil nil t).
+
+2011-11-06  Helmut Eller  <heller@common-lisp.net>
+
+	New wire format.
+
+	Switch from character streams to binary streams.  Counting
+	characters was error prone because some Lisps use utf-16
+	internally and so READ-SEQUENCE can't be used easily.
+
+	The new format looks so:
+
+	  | byte0 | 3 bytes length |
+	  |    ... payload ...     |
+
+	The playload is an s-exp encoded as UTF-8 string.  byte0 is
+	currently always 0; other values are reserved for future use.
+
+	* swank-rpc.lisp (write-message): Use new format.
+	(write-header, parse-header, asciify, encoding-error): New.
+
+	* swank.lisp (accept-connections): Create a binary stream.
+	(input-available-p): Can't read-char-no-hang on binary streams.
+
+	* slime.el (slime-net-connect): Use binary as coding system.
+	(slime-net-send, slime-net-read, slime-net-decode-length)
+	(slime-net-encode-length, slime-net-have-input-p): Use new format.
+	(slime-unibyte-string, slime-handle-net-read-error): New.
+	(featurep): Require 'un-define for XEmacs.
+
+	* swank-sbcl.lisp (input-ready-p): Use sb-sys:wait-until-fd-usable.
+
+2011-11-06  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (close-connection): Fix thinko.
+
+2011-11-06  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-backend.lisp (accept-connection): Improve docstring.  In
+	particular say that we want a binary stream if the EXTERNAL-FORMAT
+	argument is nil.
+
+	* swank-abcl.lisp (accept-connection): Make it so.
+	* swank-clisp.lisp (accept-connection): Make it so.
+	* swank-cmucl.lisp (accept-connection): Make it so.
+	* swank-lispworks.lisp (accept-connection): Make it so.
+	* swank-sbcl.lisp (accept-connection): Make it so.
+	* swank-scl.lisp (accept-connection): Make it so.
+
+2011-11-06  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-backend.lisp (utf8-to-string, string-to-utf8): New.
+
+	* swank-sbcl.lisp (string-to-utf8, string-to-utf8): Implemented	.
+	* swank-lispworks.lisp (string-to-utf8, string-to-utf8): Implemented.
+	* swank-cmucl.lisp (string-to-utf8, string-to-utf8): Implemented.
+	* swank-clisp.lisp (string-to-utf8, string-to-utf8): Implemented.
+	* swank-ccl.lisp (string-to-utf8, string-to-utf8): Implemented.
+	* swank-allegro.lisp (string-to-utf8, string-to-utf8): Implemented.
+	* swank-abcl.lisp (string-to-utf8, string-to-utf8): Implemented.
+	(octets-to-jbytes, jbytes-to-octets): New helpers.
+
+2011-11-03  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (close-connection): Be more careful with non-ascii.
+
+2011-11-03  Helmut Eller  <heller@common-lisp.net>
+
+	Remove dependecy on FLEXI-STREAMS for Lispworks.
+
+	* swank-lispworks.lisp (make-flexi-stream): Deleted.
+	(utf8-stream): New class to do the transcoding.
+	(accept-connection): Use it.
+
+2011-10-19  Andrew Myers <asm198@gmail.com>
+
+	* swank-allegro.lisp (frob-allegro-field-def): Add missing type to
+	ecase for inspector.
+
+2011-10-13  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (all-completions): Remove mixed case syms e.g |Foo|.
+	"fo" is not a prefix of "|Foo|" and it would be problematic later.
+
+2011-10-05  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (clear-repl-variables): New functions, clears *, /,
+	and + variables.
+
+2011-09-28  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el: Remove (require 'hideshow), it's not used anymore.
+	Spotted by Leo Liu.
+
+2011-09-27  Mark Evenson  <evenson@panix.com>
+
+	* swank-abcl.lisp (describe-symbol-for-emacs): Differentiate
+	between function, generic function, special forms, and macros by
+	copying SBCL implementation.
+
+2011-09-13  Christophe Rhodes  <csr21@cantab.net>
+
+	* slime.el (slime-simple-complete-symbol): only display "Complete
+	but not unique" message if the partial completion figures in the
+	completion list.
+
+2011-08-31  Anton Kovalenko  <anton@sw4me.com>
+
+	* swank-sbcl.lisp (preferred-communication-style): check for
+	:sb-thread before :win32, so :spawn is preferred for threaded
+	Windows builds.
+
+2011-08-31  Nikodemus Siivola  <nikodemus@random-state.net>
+
+	* swank-sbcl.lisp (make-socket-io-stream): Backwards compatibility with
+	SBCL < 1.0.42.43 -- and bugfix.
+
+2011-08-26  Mark Evenson  <evenson@panix.com>
+
+	* swank-abcl.lisp (class-slots): Use exported symbol allowing
+	classes with non-standard metaobjects to be inspected.
+
+2011-08-18  Helmut Eller  <heller@common-lisp.net>
+
+	Fix line numbers for compiler notes if is narrowing was in effect.
+
+	* slime.el (slime-canonicalized-location): Widen before calling
+	line-number-at-pos.
+
+2011-08-17  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-allegro.lisp (with-redirected-y-or-n-p): Fix modern-mode
+	issues.
+	Patch by Andrew Myers.
+
+2011-08-09  Nikodemus Siivola  <nikodemus@random-state.net>
+
+	* swank-sbcl.lisp (make-socket-io-stream): Use :SERVE-EVENTS T when
+	using :FD-HANDLER as the communication style. SBCL will soon stop
+	serving events by default on socket streams.
+
+2011-08-08  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (slime-unintern-symbol): New command.
+	* swank.lisp (unintern-symbol): Lisp-side implementation.
+
+2011-07-03  Nikodemus Siivola  <nikodemus@random-state.net>
+
+	* swank-sbcl.lisp (debug-var-info): New function: calls
+	SB-DI::DEBUG-VAR-INFO when available.
+	(frame-locals, frame-var-value): Treat more-context and more-count
+	vars specially.
+
+2011-06-21  Nikodemus Siivola  <nikodemus@random-state.net>
+
+	* swank.lisp (*indentation-cache-lock*): Deleted.
+	(perform-indentation-update): Spawn a new thread to handle the
+	indentation update when using threads. Move cache-clearing to
+	UPDATE-INDENTATION/DELTA-FOR-EMACS. Replace the old cache by
+	the one returned from U-I/D-F-E.
+	(update-indentation/delta-for-emacs): When clearing the cache,
+	allocate a new table. When threads are being used, copy the
+	cache before mutation, to ensure that caches possibly seen by other
+	threads are write-only by then.
+
+2011-06-18  Nikodemus Siivola  <nikodemus@random-state.net>
+
+	* swank.lisp (*indentation-cache-lock*): New variable:
+	hash-table updates aren't necessarily thread-safe.
+	(perform-indentation-update, update-indentation/delta-for-emacs):
+	Grab the lock when necessary -- in delta-for-emacs we hold on to
+	it a bit longer than necessary, but the code is easier to read
+	this way.
+
+2011-06-16  Nikodemus Siivola  <nikodemus@random-state.net>
+
+	* swank.lisp (macro-indentation): Restore the old simple version.
+
+	* swank-sbcl.lisp (compiling-from-buffer-p): PROBE-FILE to
+	handle cases there the tmp-directory is a symlink.
+	(compiling-from-file-p): Ditto.
+
+2011-06-14  Nikodemus Siivola  <nikodemus@random-state.net>
+
+	* swank-backend.lisp (call-with-io-timeout): New DEFINTERFACE.
+	* swank-sbcl.lisp (call-with-io-timeout): DEFIMPLEMENTATION for it.
+	* swank.lisp (auto-flush-loop): Call FINISH-OUTPUT using
+	CALL-WITH-IO-TIMEOUT to prevent deadlocks.
+
+	* swank.lisp (macro-indentation): Fix handling of lambda-list
+	keywords other than &rest and &body.
+
+	* slime.el (slime-update-system-indentation): Remove stale specs
+	from common-lisp-system-indentation when new one arrives.
+
+2011-06-10  Nikodemus Siivola  <nikodemus@random-state.net>
+
+	* swank.lisp (macro-indentation): Walk the lambda-list
+	to construct a better indentation spec instead of just
+	looking for &BODY.
+
+2011-06-09  Nikodemus Siivola  <nikodemus@random-state.net>
+
+	* swank-sbcl.lisp (execv): Stupid SBCL hackers breaking backwards
+	compatibility again: SB-POSIX:SYSCALL-ERROR has a required
+	argument in 1.0.49, but accepts no arguments in older ones. Use
+	plain ERROR instead.
+
+	Support for per-package derived indentation, when
+	slime-indentation is used.
+
+	* swank.lisp (update-indentation/delta-for-emacs): Tell Emacs
+	which packages the symbol is available in. Unless
+	slime-indentation is used, this information is just dropped on the
+	floor.
+
+	* slime.el (slime-update-system-indentation): New function. Use
+	this to inform indentation about derived specs when
+	`common-lisp-system-indentation' is bound.
+	(slime-handle-indentation-update): Adjust to support per-package
+	derived indentation specs when slime-indentation is available.
+
+2011-05-27  Helmut Eller  <heller@common-lisp.net>
+
+	Fix "wrong number of args" problem with slime-inspector-quit.
+	Reported by Anton Kovalenko.
+
+	* slime.el (slime-popup-buffer-quit-function)
+	(slime-quit-threads-buffer): Drop the kill-buffer-p argument.
+
+2011-05-24  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (destructure-case): Fix "`_' not left unused" warnings.
+	Insert an (ignore) form for empty bodies; this inhibts the
+	compiler transformation that leads to the spurios warning.  This
+	has no runtime cost in compiled code, since the compiler
+	recognizes (ignore) and emits no code for it.
+	(slime-flatten-tree): Deleted. No longer used.
+
+2011-05-23  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (sdlb-print-condition): New (or old new)
+	function. It was bound by P in sldb-mode, but for some reason it
+	was lost.
+
+2011-05-23  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (slime-apropos-label-properties): Deleted.  Just
+	auto-load apropos-mode.
+	(slime-print-apropos): Use the variable apropos-label-face
+	which seems to exist in all relevant Emacsen.
+
+2011-05-22  Helmut Eller  <heller@common-lisp.net>
+
+	Turn on lexical-binding for slime.el.
+	This mostly involves prefixing unused variables
+	with underscores to shut up the compiler, but
+	also some less harmless changes.
+
+	* slime.el (slime-dispatching-connection, slime-current-thread):
+	Add defvars.
+	(slime-connect): called-interactively-p wants 1 arg in Emacs 24
+	but none in Emacs 22.  So we can't use it; instead add an extra
+	optional arg and set that to non-nil in the interactive spec.
+	(slime-read-from-minibuffer): Actually use the history arg.
+	(slime-inspector-quit): Drop the unused kill-buffer arg from the
+	lambda-list.
+	(slime-run-tests): Can't specbind slime-repl-history-file without
+	variable declation.  I don't want to declare it here so I just
+	eliminated it and let somebody else fix slime-repl.el.
+
+2011-05-21  Helmut Eller  <heller@common-lisp.net>
+
+	Minor tweaks to avoid some compiler warnings.
+
+	* slime.el (slime-modeline-string, slime-buffer-connection):
+	Declare variables.
+	(slime-flatten-tree): Helper function.
+	(destructure-case): Use it, and make '_ ignorable if
+	it occurs in some pattern.
+	(slime-connect): Avoid obsolete functions:
+	string-to-int -> string-to-number
+	interactive-p -> called-interactively-p
+	(slime-complete-maybe-restore-window-configuration)
+	last-command-char -> last-command-event
+	completion-base-size ->  completion-base-position
+	(slime-xref-mode-map): Use call-interactively
+	when calling the remapped next-line/previous-line commands.
+
+2011-05-09  Nikodemus Siivola  <nikodemus@random-state.net>
+
+	* swank-sbcl.lisp (swank-compile-string): Use :SOURCE-NAMESTRING
+	to provide the name of the actual source file, and
+	:ALLOW-OTHER-KEYS for compatibility with pre-1.0.48.1 versions.
+	This allows SBCL to get uninteresting redefinition muffling right.
+	(*trap-load-time-warnings*): Default to T to make the redefinition
+	notes more visible, especially now that redefinition muffling hides
+	the boring ones.
+
+2011-05-08  Nikodemus Siivola  <nikodemus@random-state.net>
+
+	* slime.el (slime-intern-indentation-spec): New function. Converts
+	strings in an indentation spec to symbols.
+	(slime-handle-indentation-update): Intern the indentation spec
+	using slime-intern-indentation-spec, so that lisp side can pass
+	complex indentation specs.
+	* contrib/swank-indentation.lisp (application-indentation-hint):
+	Downcase symbol names -- any symbol in an indentation spec is
+	pretty much guaranteed to have a lowecase name on the Emacs side.
+
+2011-04-16  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-load-failed-fasl): New variable. Accepts `ask',
+	`always', and `never' symbols. Loads or not loads fasls produced by
+	compile-file which returned non-nil failure-p.
+
+2011-04-14  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (list-threads): Call `use-threads-p' only when
+	*emacs-connection* is non-nil. `use-threads-p' wouldn't work in
+	this case, and there is no need to remove a worker thread from the
+	list if it's not connected.
+	This fixes an issue with calling swank:stop-server when slime
+	isn't connected.
+
+2011-03-13  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (format-restarts-for-emacs): Add
+	without-printing-errors around restart printing.
+
+2011-03-09  Helmut Eller  <heller@common-lisp.net>
+
+	Remove slime-sexp-at-point-for-macroexpansion.
+
+	* slime.el (slime-sexp-at-point-for-macroexpansion): Deleted.
+	(slime-eval-macroexpand): Use slime-sexp-at-point instead.
+	(slime-eval-macroexpand-inplace): Use
+	slime-bounds-of-sexp-at-point directly.
+
+2011-03-09  Helmut Eller  <heller@common-lisp.net>
+
+	Move some of the logic from slime-sexp-at-point-for-macroexpansion
+	into slime-sexp-at-point.
+
+	* slime.el (slime-bounds-of-sexp-at-point): New.  Special case if
+	we are at '( as slime-sexp-at-point-for-macroexpansion does.
+	(slime-bounds-of-symbol-at-point): New.
+	(slime-symbol-at-point, slime-sexp-at-point): Use the above.
+
+2011-02-24  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-allegro.lisp (find-topframe): Fix excl::int-newest-frame
+	invocation for the latest alpha version of Allegro.
+	Patch by Gábor Melis.
+
+2011-02-18  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-init-popup-buffer): Don't use
+	multiple-value-setq on a list, XEmacs doesn't like it.
+
+2011-02-18  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-insert-threads): Make sure newlines have the
+	same thread-id property as the rest of the line. This fixes
+	confusion when point is at the end of a line.
+
+2011-02-13  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-inspector-operate-on-point): Don't save the
+	point when inspecting a different object.
+	(slime-inspector-operate-on-point): If there is no action property
+	directly at the point, try looking at (1- (point)), many
+	inspectable objects are presented the end of the line, so it's
+	easier to navigate to them by C-e and still being able to activate
+	it.
+
+2011-02-08  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-choose-overlay-region): Don't use `list' instead
+	of `values', GNU Emacs fakes multiple values with lists, but
+	XEmacs uses real multiple values.
+	Reported by Raymond Toy.
+
+2011-02-04  Helmut Eller  <heller@common-lisp.net>
+
+	Be careful with interning.
+
+	* swank.lisp (find-definitions-for-emacs): Use parse-symbol.
+
+2011-02-04  Helmut Eller  <heller@common-lisp.net>
+
+	Don't double encode results for eval-in-emacs.
+
+	* slime.el (slime-check-eval-in-emacs-result): New.
+	(slime-eval-for-lisp): Use it.
+	* swank.lisp (unreadable-object): Removed.
+
+2011-02-02  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (eval-in-emacs): Return unreadable results from Emacs
+	as an unreadable-object, not as a string.
+
+2011-02-02  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-eval-for-lisp): Return value as a string,
+	because it can be unreadable, e.g. #<buffer foo>
+	* swank.lisp (eval-in-emacs): Prevent reader errors.
+
+2011-02-02  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (eval-in-emacs): Export it.
+
+2011-01-28  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-check-location-filename-sanity): Guard
+	against target-filename being NIL.
+
+2011-01-26  Helmut Eller  <heller@common-lisp.net>
+
+	Allow tail-merging in call-with-bindings.
+
+	* swank.lisp (call-with-bindings): Don't use progv if alist is
+	empty alist is empty.
+
+2011-01-20  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-ecl.lisp (+TAGS+): change
+	(translate-logical-pathname #P"SYS:TAGS") to
+	(merge-pathnames "TAGS" (translate-logical-pathname "SYS:"))
+	because of case conversion the former results in a pathname with a
+	name "tags", which doesn't exist.
+
+2010-12-10  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-with-popup-buffer): Correct the docstring.
+
+2010-12-09  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (slime-toggle-break-on-signals): New command.
+	* swank.lisp (toggle-break-on-signals): The corresponding Lisp code.
+
+2010-12-02  Martin Simmons  <martin@lispworks.com>
+
+	* swank-lispworks.lisp (frame-actual-args): Reimplement to include
+	only the values like on other platforms and deal with, optional
+	key and rest args.
+	(print-frame): Format the frame as a call like in other backends.
+
+2010-11-13  Helmut Eller  <heller@common-lisp.net>
+
+	Improve source locations for compiler messages in Lispworks.
+
+	* swank-lispworks.lisp (map-error-database)
+	(signal-error-data-base, make-dspec-progenitor-location): Pass the
+	edit-path along.
+	(signal-undefined-functions): No edit-path available so just use
+	nil.
+
+2010-11-12  Helmut Eller  <heller@common-lisp.net>
+
+	Improve frame-source-location for Lispworks.
+
+	* swank-lispworks.lisp (frame-source-location): Exctract the
+	edit-path from the frame and pass it to Emacs.
+	(edit-path-to-cmucl-source-path): New function.
+	(frame-location): Use it.
+
+	* slime.el (slime-location-offset): Add a :edit-path property.
+	(slime-search-edit-path): New function.
+	(slime-search-call-site): Fix regexp to match
+	zero arg functions.
+
+2010-11-07  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-backend.lisp (label-value-line): Remove display-nil-value.
+	And the other stuff too.
+	(label-value-line*): Idem.
+
+2010-11-07  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-loader.lisp: ASDF free again.  And proud of it!
+	(default-fasl-dir, load-swank): Remove asdf stuff.
+
+2010-11-03  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-loader.lisp (*architecture-features*): Add :arm for CCL
+	ARM port.
+
+2010-11-02  Martin Simmons  <martin@lispworks.com>
+
+	* swank-lispworks.lisp (list-callers-internal): Revert to previous
+	low level implementation, fixed for LW6.
+	(list-callees-internal): Reimplement using low level instead of
+	the compiler's xref.
+
+2010-10-23  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-goto-location-position): In case of
+	(:function-name name) go to (point-min) before searching for
+	function. Remove redundant regexp and regexp-quote function name
+	before inserting it into a regexp.
+
+2010-10-21  Helmut Eller  <heller@common-lisp.net>
+
+	In ABCL, try harder to find the source of stack frames.
+
+	* swank-abcl.lisp (source-location): Now a GF.
+	(source-location [java-stack-frame]): New.
+	(source-location [lisp-stack-frame]): New.
+	(source-location [function]): New.
+	(frame-source-location, find-definitions): Use them.
+	(*source-path*, find-definitions): New.
+	(system-property, pathname-parent, pathname-absolute-p)
+	(split-string, path-separator, search-path-property)
+	(jdk-source-path, class-path, zipfile-contains-p)
+	(find-file-in-path): Noise for filename frobbing.
+
+2010-10-21  Helmut Eller  <heller@common-lisp.net>
+
+	Require ABCL 0.22 and remove obsolete conditionalisation.
+
+	* swank-abcl.lisp (call-with-debugger-hook)
+	(install-debugger-globally)
+	(call-with-debugging-environment, backtrace, print-frame, spawn):
+	Remove #+/#- stuff.
+	(preferred-communication-style): Return :spawn unconditionally.
+	(sys::break): Removed.
+
+2010-10-20  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-connect): Convert the port number read from
+	minibuffer to an integer, passing it as a string to
+	`make-network-process' isn't portable.
+	Patch by Marko Kocic.
+
+2010-10-19  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (invoke-nth-restart): Make sure there is such restart
+	before invoking it.
+
+2010-10-19  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-sbcl.lisp (deinit-log-output): Use the right symbol for
+	*LOG-OUTPUT*, swank package isn't available at the time
+	swank-backend is compiled.
+
+2010-10-16  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-loader.lisp (default-fasl-dir): Guard against using :asdf
+	package if it doesn't exist.
+	Patch by Anton Vodonosov.
+
+2010-10-16  Attila Lendvai  <attila.lendvai@gmail.com>
+
+	* swank-fuzzy.lisp: speed up by 2-4 times (on sbcl).
+
+	* fuzzy.el: Clean up fuzzy completion's keymap code, drop
+	mimic-key-bindings.
+
+	* slime.el: Added separate host and port history for
+	slime-connect.
+	(slime-lookup-lisp-implementation): better error reporting and
+	allow using a functionp to generate the arguments.
+
+	* swank.lisp: Smarten up the label-value-line macros:
+	  - support a :label emacs font property
+	  - added key args: padding-length, display-nil-value,
+	    hide-when-nil, splice-as-ispec, value-text
+	  - label-value-line* will evaluate and splice the result
+	    of the form after a @ character
+
+	* swank-loader.lisp: Optional integration with ASDF. When ASDF is
+	available, store slime fasl's where ASDF would store them. Also
+	make sure swank.asd is visible to ASDF.
+
+2010-10-09  Raymond Toy  <toy.raymond@gmail.com>
+
+	* swank-cmucl.lisp (codepoint-length): Implement codepoint-length
+	to return the number of codepoints in cmucl's utf-16 strings.
+
+	* swank-backend.lisp (:swank-backend): Export codepoint-length. 
+	(codepoint-length): definterface codepoint-length.  Default is to
+	use LENGTH.
+
+	* swank-rpc.lisp (write-message): Call
+	swank-backend:codepoint-length to get the correct length for
+	emacs. 
+
+2010-10-08  Christophe Rhodes  <csr21@cantab.net>
+
+	Pass more detailed source location information to
+	swank:compile-string-for-emacs.  Motivated by R's source location
+	needs (where srcrefs are line/column based).
+
+	* slime.el (slime-compile-string): Generate :line location format
+	from start-offset, passing it through to
+	swank:compile-file-for-emacs.
+	(find-definition.2): Use new-style position.
+
+	* swank.lisp (compile-string-for-emacs): Use only the offset from
+	the position argument.
+
+	* swank-backend.lisp (swank-compile-string): Fix docstring typo.
+
+2010-10-07  Nikodemus Siivola  <nikodemus@random-state.net>
+
+	Hanging on to a *log-output* from a previous image is bad on SBCL
+	at least: it is initialized to an FD-STREAM, which cannot be
+	reused from one image to another.
+
+	Deal with this by using sb-ext:*save-hooks* to clear the stream.
+
+	* swank-sbcl.lisp (deinit-log-output): New function.
+
+2010-10-02  Helmut Eller  <heller@common-lisp.net>
+
+	Rename slime-macro/compiler-macro-expand-1 => slime-expand-1
+
+	* slime.el (slime-expand-1): Renamed from
+	slime-macro/compiler-macro-expand-1.
+	(slime-expand-1-inplace): Renamed from
+	slime-macro/compiler-macro-expand-1-inplace.
+
+	* swank.lisp (swank-expand-1): Renamed from
+	swank-macro/compiler-macro-expand-1.
+	(swank-expand): Renamed from swank-macro/compiler-macro-expand.
+	(expand-1): Renamed from macro/compiler-macro-expand-1.
+	(expand): Renamed from macro/compiler-macro-expand.
+
+2010-10-01  Helmut Eller  <heller@common-lisp.net>
+
+	Don't use indent-sexp for macroexpanded code.
+	indent-sexp is potentially slow and usually redundant.
+
+	* slime.el (slime-initialize-macroexpansion-buffer): Don't use
+	indent-sexp.
+	(slime-eval-macroexpand-inplace): Avoid indent-sexp but
+	use slime-insert-indented.
+
+2010-10-01  Helmut Eller  <heller@common-lisp.net>
+
+	Save result in kill ring for M-- C-x C-e.
+	For C-u C-x C-e set mark before inserting.
+
+	* slime.el (slime-eval-save): New function.
+	(slime-eval-print): Set mark before inserting.
+	(slime-interactive-eval): Use it.
+
+2010-09-22  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (eval-for-emacs): Send (:abort condition) where
+	condition is a condition which was aborted instead of just (:abort).
+	* slime.el: Handle the above change.
+
+2010-09-22  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-clisp.lisp (*external-format-to-coding-system*): Remove
+	stray :latin-1 argument for ext:make-encoding.
+	Reported by Mirko Vukovic.
+
+2010-09-20  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-cmucl.lisp (character-completion-set): Implement. Requires
+	recent versions of CMUCL.
+	Patch by Raymond Toy.
+
+2010-09-18  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-backend.lisp (valid-function-name-p): New interface.
+	(compiler-macroexpand-1): Use it to guard against type errors
+	from COMPILER-MACRO-FUNCTION.
+
+2010-09-18  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (before-init): push :SWANK to *FEATURES*. (lp#627313)
+
+2010-09-18  Tobias C. Rittweiler <tcr@freebits.de>
+
+	Make C-c C-m also expand compiler macros. (lp#638720)
+
+	* slime.el (slime-macro/compiler-macro-expand-1): New.
+	(slime-macro/compiler-macro-expand-1-inplace): New.
+	(slime-editing-keys): Map `C-c C-m' to first above.
+	(slime-compiler-macroexpand-1): Take prefix-arg like others.
+	(slime-compiler-macroexpand-1-inplace): Ditto.
+	(slime-compiler-macroexpand): Thus deleted.
+	(slime-compiler-macroexpand-inplace): Ditto.
+
+	* swank.lisp (swank-macro/compiler-macro-expand-1): New defslimefun.
+	(swank-macro/compiler-macro-expand): New defslimefun.
+	(macro/compiler-macro-expand-1): New.
+	(macro/compiler-macro-expand): New.
+	(expand-repeatedly): New helper.
+
+2010-09-03  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-forward-cruft): Use " \t\n" to match whitespaces
+	instead of [:space:], XEmacs compatibility.
+
+2010-09-03  Helmut Eller  <heller@common-lisp.net>
+
+	For C-c C-k, ask before loading possibly broken fasl files.
+
+	* slime.el (slime-compilation-result): Add 2 slots: loadp and
+	faslfile.
+	(slime-compilation-finished): Use them to load the faslfile.
+	* swank.lisp (:compilation-result): Add 2 slots. Use keyword
+	constructor.
+	(compile-file-for-emacs): Return loadp and faslfile to Emacs.
+	(collect-notes): Pass loadp and falsfile along.
+
+2010-09-02  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-cmucl.lisp: #-cmu19 -> #+cmu18, cmu18 is allegedly the
+	oldest supported CMUCL.
+
+2010-09-01  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-sbcl.lisp (background-save-image): add #-win32, because it
+	uses symbols not present on win32.
+	Reported by Holly Styles.
+
+2010-08-31  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-cmucl.lisp (foreign-frame-p, gdb-exec, frame-ip): Sparc
+	support.
+	Patch by Raymond Toy.
+
+2010-08-31  Nikodemus Siivola  <nikodemus@random-state.net>
+
+	* swank-sbcl.lisp (make-dspec): Elide the function name when
+	generating a VOP description, since the VOP name is more useful
+	and is the first part of the source-description list.
+
+2010-08-28  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-cmucl.lisp (*gdb-program-name*): Determine gdb location
+	from PATH.
+	(gdb-exec): Use *gdb-program-name* instead of "gdb".
+	(gdb-command): Mac OS X compatibility.
+	Patch by Raymond Toy.
+
+2010-08-25  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-sbcl.lisp (exec-image): Use (car sb-ext:*posix-argv*) if
+	SBCL doesn't have sb-ext:*runtime-pathname*.
+	Reported by Vinay.
+
+2010-08-22  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-xemacs-recompute-modelines): Add
+	`slime-xemacs-recompute-modelines' to `pre-idle-hook', this solves
+	the problem of synchronization of modelines.
+	Thanks to Aidan Kehoe.
+
+2010-08-21  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-recompute-modelines): Recompute modelines only
+	for visible buffers. Kludge: modeline can be out of sync if the buffer
+	becomes visible and no slime/lisp interaction took place yet.
+	Patch by Raymond Toy.
+	(slime-search-buffer-package): Revert, with the above
+	change caching shouldn't be necessary.
+
+2010-08-21  Helmut Eller  <heller@common-lisp.net>
+
+	Add commands to enable/disable contribs.
+
+	* slime.el (slime-enable-contrib, slime-disable-contrib): New.
+	(slime-contrib): New struct to collect meta-data about contribs.
+	(define-slime-contrib): Store meta-data in 'slime-contribs plist.
+	(slime-all-contribs, slime-find-contrib, slime-read-contrib-name):
+	New helpers.
+
+2010-08-21  Anton Kovalenko <anton@sw4me.com>
+
+	Snapshot restore support for SBCL.
+
+	* swank-backend.lisp (background-save-image): New.
+	* swank-sbcl.lisp (command-line-args, dup, sys-execv, exec-image)
+	(make-fd-stream, background-save-image): New.
+
+2010-08-20  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-maybe-complete-as-filename): Limit backward
+	search for #\", it slows down on large buffers.
+	Reported by Raymond Toy.
+	(slime-search-buffer-package): Cache the package, searching every time
+	on large buffers may be slow.
+
+2010-08-15  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (setup-server): Check the coding system before doing
+	anything, otherwise it may be eaten by ignore-errors later.
+
+2010-08-13  Helmut Eller  <heller@common-lisp.net>
+
+	Find definition for (def-vm-support-routine NAME ...)
+
+	* swank-cmucl.lisp (vm-support-routine-definitions): New.
+	(find-definitions): Use it.
+
+2010-08-12  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-sbcl.lisp (save-image): Fix save-lisp-and-die invocation.
+	Based on a patch by Anton Kovalenko.
+
+2010-08-11  Helmut Eller  <heller@common-lisp.net>
+
+	Bind *print-readably* to nil when printing the title.
+
+	* swank.lisp (prepare-title): Factored out into new function.
+	(*inspector-printer-bindings*)
+	(*inspector-verbose-printer-bindings*): New.
+	(with-string-stream): New.
+	(emacs-inspect/istate): Renamed from emacs-inspect/printer-bindings.
+
+2010-08-06  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-ccl.lisp (spawn): Revert the previous change, using
+	:use-standard-initial-bindings nil might be not thread-safe.
+
+2010-08-05  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-ccl.lisp (spawn): Specify
+	:use-standard-initial-bindings nil, so that *readtable*
+	etc. modifications persist.
+
+2010-08-04  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-allegro.lisp (fspec-definition-locations): Default
+	&optional position to 0, otherwise it may cause errors later.
+	Reported by: Paulo Madeira.
+
+2010-08-04  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-dispatch-event): :eval-no-wait, lisp sends a
+	form in a string, not a function name and arguments. Add
+	slime-check-eval-in-emacs-enabled.
+	* swank.lisp (defpackage): export eval-for-emacs.
+
+2010-07-30  Helmut Eller  <heller@common-lisp.net>
+
+	Don't get confused by END-OF-FILE on unrelated streams.
+	Fixes bug "slime connection broken on trivial condition..."
+	Reported by Pascal J. Bourguignon.
+
+	* swank.lisp (end-of-repl-input): New condition.
+	(simple-repl, read-non-blocking): Use it.
+	* slime.el ([test] end-of-file): Test it.
+
+2010-07-30  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (print-part-to-string): Bind *print-readably* to nil.
+	Useful when debugging broken printer methods.
+
+2010-07-22  Vitaly Mayatskikh  <v.mayatskih@gmail.com>
+
+	* swank-lispworks.lisp (list-callers-internal): Fix for LW6.
+	(list-callees-internal): New function, use it.
+
+2010-07-21  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-sbcl.lisp (quit-lisp): Use sb-thread:terminate-thread
+	instead of sb-ext:quit :recklessly-p t. This way
+	sb-ext:*exit-hooks* will be run.
+	Reported by Lorenz Mösenlechner.
+
+2010-07-06  Helmut Eller  <heller@common-lisp.net>
+
+	Find definition for (%primitive NAME ...)
+
+	* swank-cmucl.lisp (template-definitions, primitive-definitions):
+	New functions.
+	(find-definitions): Use them.
+
+2010-06-22  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-loader.lisp (*architecture-features*): ECL uses :x86_64.
+
+2010-06-18  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (slime-current-tlf-number,slime-current-form-path):
+	Moved to contrib/slime-parse.el.
+
+2010-06-18  Helmut Eller  <heller@common-lisp.net>
+
+	Don't use goto-line.
+
+	* slime.el (slime-goto-line): New function as replacement without
+	goto-line's cruft that we don't want.
+
+2010-06-04  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el, swank.lisp: #'(lambda -> (lambda
+
+2010-06-04 Stelian Ionescu <sionescu@cddr.org>
+
+	* swank.lisp: Move definition of LCONS before first use.
+
+2010-06-04  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-allegro.lisp (socket-fd): Add support for allegro.
+
+2010-06-04  Helmut Eller  <heller@common-lisp.net>
+
+	Some *sldb-quit-restart* related fixes.
+
+	* swank.lisp (*sldb-quit-restart*): Set to nil by default.
+	(throw-to-toplevel, debug-in-emacs): Get rid of boundp tests.
+	(format-restarts-for-emacs): Add a mark for *sldb-quit-restart*.
+	(handle-requests): Always bind *emacs-connection*.
+	(with-connection): Get rid of call-with-connection so that
+	compilers can remove the call frame more easily.
+	(repl-input-stream-read): Factored out from
+	make-repl-input-stream.  Bind a *sldb-quit-restart* here too; no
+	need to restart the repl and a extra prompt for errors in Emacs
+	requests.
+
+2010-05-28  Helmut Eller  <heller@common-lisp.net>
+
+	Fix last change.
+
+	* slime.el (define-slime-contrib): Fix names.
+	Remove provide; makes no sense to call provide before file is
+	completely loaded.
+
+2010-05-28  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (define-slime-contrib): Use destructuring-bind.
+
+2010-05-28  Helmut Eller  <heller@common-lisp.net>
+
+	Move some var-defs before first use.
+
+	* slime.el (slime-show-xref-buffer, slime-read-connection)
+	(slime-thread-index-to-id):
+
+2010-05-28  Helmut Eller  <heller@common-lisp.net>
+
+	Move wacky parsing code to contrib.
+
+	* slime.el (slime-extract-context, slime-parse-context)
+	(slime-in-expression-p, slime-pattern-path)
+	(slime-beginning-of-list, slime-end-of-list)
+	(slime-parse-toplevel-form, slime-arglist-specializers)
+	(slime-definition-at-point, slime-current-parser-state): Moved to
+	contrib/slime-parse.el
+	(slime-inspect-definition, slime-disassemble-definition): Moved to
+	contrib/slime-fancy-inspector.el
+
+2010-05-27  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el ([test] interactive-eval): Fix test.
+
+2010-05-27  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-ccl.lisp (socket-fd): Implement backend function.
+
+2010-05-27  Helmut Eller  <heller@common-lisp.net>
+
+	Clean up some of the confusion regarding *sldb-quit-restart*.
+
+	* swank.lisp (top-level-restart-p, *toplevel-restart-available*)
+	(coerce-restart): Deleted.
+	(with-top-level-restart, simple-repl): Simplify.
+
+2010-05-26  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (swank-error): Unrename from swank-protocol-error.
+
+2010-05-26  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-cmucl.lisp (parse-gdb-line-info): Try working dir first.
+
+2010-05-26  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (slime-defun-if-undefined): Renamed from
+	slime-DEFUN-if-undefined. No need to yell.
+
+2010-05-26  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (slime-compile-file): Only send non-nil keyword args.
+	(slime-hack-quotes): New function.
+
+2010-05-18  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (sldb-insert-condition): Don't create a mouse tooltip
+	for long error message, tooltip shows the same text and doesn't
+	add any value.
+	(slime-definition-at-point): factor out of `slime-inspect-definition'.
+	(slime-disassemble-definition): New, similar to `slime-inspect-definition'.
+
+	* swank.lisp (disassemble-form): rename from disassemble-symbol,
+	do the same as before but evaluate the argument.
+
+
+2010-05-16  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-close-popup-window): Don't kill
+	slime-popup-restore-data local variable in another buffer.
+
+2010-05-13  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (define-slime-contrib): New macro.
+
+2010-05-13  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (*after-init-hook*, simple-break)
+	(coerce-to-condition, use-threads-p, current-thread-id): Moved
+	around in swank.lisp.
+	(with-temp-package): Deleted; not used anywhere.
+	(ensure-list): Use in SWANK-REQUIRE.
+
+2010-05-11  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-inspect-definition): New function,
+	inspects definition at point.
+	(slime-parse-context): Add :defstruct and :defpackage.
+
+2010-05-10  Mark Evenson  <evenson@panix.com>
+
+	* swank-loader.lisp (*architecture-features*): Add Java platforms
+	as features for ABCL.
+
+2010-05-06  Helmut Eller  <heller@common-lisp.net>
+
+	Remove some non-standard file variables.
+
+	* swank-cmucl.lisp, swank-scl.lisp: Remove pbook vars.
+	* swank-clisp.lisp: Remove indentation settings. Slime does it
+	automatically.
+
+2010-05-05  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-dispatch-event): Fix typo in the previous commit.
+
+2010-05-05  Stas Boukarev  <stassats@gmail.com>
+
+	* Make buffer names more consistent.
+	Patch by Leo Liu.
+
+2010-05-05  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-cmucl.lisp (gdb-command): Use gdb's MI.
+
+2010-05-05  Mark Evenson <evenson@panix.com>
+
+	Fix for Cygwin Emacs filename problem.
+
+	* slime.el (slime-init-command): Use slime-to-lisp-filename.
+
+2010-05-05  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (sldb-exit): When stepping, close buffer after a delay.
+	(sldb-close-step-buffer): New function.
+
+2010-05-01  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-restart-sentinel): Don't pop to the inferior
+	buffer, since this command is usually run either from
+	*inferior-lisp* buffer or from REPL, it makes sense to reuse
+	current window instead of messing up window configuration.
+	(slime-move-point): New function, moves point in a buffer and
+	its window.
+
+2010-04-29  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-compile-file): Run check-parens after checking
+	that the buffer is associated with a file.
+
+2010-04-27  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-info): New function, opens the manual.
+
+2010-04-24  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (format-values-for-echo-area): Also print the length of an
+	integer in bits.
+
+2010-04-23  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-update-threads-buffer): Use slime-eval-async.
+
+2010-04-23  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-inspector-buffer): Use slime-with-popup-buffer,
+	that solves the problem with keybindings shadowed by slime-mode.
+	Reported by Nathan Bird.
+
+	* README: Better wording.
+
+2010-04-22  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-backend.lisp (with-symbol): Test for package before doing
+	find-symbol.
+	* swank-sbcl.lisp(Multiprocessing): use with-symbol.
+	(emacs-inspect t): Remove newlines from text returned by
+	sb-impl::inspected-parts, otherwise there will be ".." inserted by
+	the printer due to (*print-lines* 1).
+
+2010-04-21  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-open-inspector): Use forward-line instead of
+	goto-line, since it doesn't result in  "Mark set" message.
+	(slime-inspector-buffer): Enable slime-mode after enabling
+	slime-inspector-mode, otherwise the former will be disabled by the
+	latter.
+
+2010-04-20  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-sbcl.lisp (condition-timed-wait): New helper. Use
+	WITH-DEADLINE rather than WITH-TIMEOUT because the latter conses a
+	new timer, and this function is called _a lot_.
+	(receive-if): Use it.
+
+2010-04-20  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-update-threads-buffer): Save point position
+	on updates.
+
+2010-04-20  Stas Boukarev  <stassats@gmail.com>
+
+	* README: advertise additional contribs, especially slime-fancy.
+
+2010-04-19  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (symbol-classification-string): New function to
+	replace (symbol-classification->string (classify-symbol
+	symbol)). It's faster and conses much less, while it is called
+	many times by fuzzy completion and fancy inspector.
+	(symbol-classification->string): Removed.
+	(list-threads): Exclude the current thread only if its name is
+	"worker".
+
+2010-04-18  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-threads-update-interval): Add :group and :type
+	parameters to this customization.
+	Thanks to Mark Harig.
+
+2010-04-17  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-threads-update-interval): New customization
+	variable, if set to a number the threads buffer will
+	updated with this interval.
+	(slime-with-popup-buffer): Rename modes option to mode,
+	for a major mode. Enabling minor modes from within the body
+	doesn't cause troubles. End that way it is compatible with XEmacs
+	since it doesn't need to use minor-mode-list to distinguish
+	between minor and major modes.
+
+	* swank.lisp (list-threads): Delete the current thread from the listing.
+
+2010-04-15  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (sldb-mode): Include some more commands in its help.
+	(sldb-goto-last-frame): Do not center to the middle but to the
+	bottom of the window.
+
+2010-04-14  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (compile-file-for-emacs): Actually commit the change
+	described in 2010-04-12.
+
+2010-04-14  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el ([test] interrupt-encode-message): New test.
+
+2010-04-14  Helmut Eller  <heller@common-lisp.net>
+
+	Handle errors during interrupt processing with SLDB.
+	Bugfix for http://article.gmane.org/gmane.lisp.slime.devel/9641
+
+	* swank.lisp (invoke-or-queue-interrupt): When the queue is full,
+	process the interrupt immediately and also handle
+	SERIOUS-CONDITIONs during interrupt processing in SLDB.  SLDB
+	should work more likely than the interrupted code is expected to
+	handle the condition.
+	(with-interrupts-enabled%): Don't check for interrupts when
+	toggling interrupts off.
+	(wait-for-event): Add docstring.
+
+2010-04-14  Helmut Eller  <heller@common-lisp.net>
+
+	Move error handling and logging from swank-rpc.lisp to swank.lisp
+
+	* swank.lisp (log-event, destructure-case, decode-message)
+	(encode-message, decode-message, swank-protocol-error): Moved back
+	to swank.lisp from swank-rpc.lisp.  It never belonged there
+	anyway.
+
+	* swank-rpc.lisp (read-message, write-message): New functions.
+	(swank-reader-error): New condition.
+
+2010-04-12  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (slime-doc-bindings): Restore key for slime-apropos.
+
+2010-04-12  Helmut Eller  <heller@common-lisp.net>
+
+	Fix compile-file for various backends.
+
+	* slime.el (slime-compile-file): Only pass non-nil keyword args to
+	Lisp.
+	(slime-simplify-plist): New helper.
+	(slime-compile-and-load-file): Pass policy parameter directly
+	without using global variables.
+
+	* swank.lisp (compile-file-for-emacs): Change singature sightly.
+
+2010-04-06  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-create-compilation-log): Enable
+	compilation-mode, which was enabled previously by
+	slime-insert-compilation-log.
+
+2010-04-05  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-doc-bindings): Move slime-apropos to C-c C-d A,
+	C-c C-d a will be bound to slime-autodoc-manually.
+
+	* doc/slime.texi: Document the above change.
+
+2010-04-05  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el: Some further adaptations to the new slime-with-popup-buffer.
+
+2010-04-04  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-insert-threads): Use header-line-format only when
+	it's present (XEmacs doesn't support it).
+
+2010-04-04  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-with-popup-buffer): Make &optional parameters
+	&key parameters, add modes parameter.
+	slime-with-popup-buffer sets up some buffer local variables,
+	but enabling major modes kills all buffer locals, so modes should
+	be enabled before setting them.
+	Adopt changes to slime-with-popup-buffer where needed.
+	This fixes several bugs with popup buffers on non-default connections.
+
+2010-04-03  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-update-threads-buffer): New formatting, with labels
+	and additional information provided by the backend.
+	* swank-allegro.lisp (thread-attributes): Move process-priority from
+	thread-status.
+
+2010-03-29  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el: Add gud as compile-time dependency.
+
+2010-03-29  Helmut Eller  <heller@common-lisp.net>
+
+	Compile swank-sbcl-exts only for SBCL.
+
+	* swank-loader.lisp (*contribs*): Add #+sbcl.
+
+2010-03-29  Helmut Eller  <heller@common-lisp.net>
+
+	Minor cleanups
+
+	* swank.lisp (connection): Make socket-io read-only again.
+	(*connections*): Move declaration before first use.
+	(finish-connection-setup): Merged into make-connection.
+	(accept-connections): Renamed from serve-connection and
+	reorganized so that the socket-io slot can be read-only.
+	(accept-authenticated-connection): Renamed to authenticate-client.
+	Update callers accordingly.
+
+2010-03-29  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (connection-info): Use princ-to-string rather than
+	prin1-to-string as the latter may barf if *print-readably* is nil.
+
+2010-03-27  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-check-location-buffer-name-sanity): Less duplication,
+	reuse slime-check-location-filename-sanity.
+	(slime-check-location-filename-sanity): Do any work only when
+	slime-warn-when-possibly-tricked-by-M-. is non-nil.
+
+2010-03-21  Stas Boukarev  <stassats@gmail.com>
+
+	* start-swank.lisp: Document options to swank-loader:init.
+
+	* doc/slime.texi (Miscellaneous): mention
+	`sldb-break-with-system-debugger'.
+
+2010-03-21  Stas Boukarev  <stassats@gmail.com>
+
+	* start-swank.lisp: New file for starting swank by simply loading
+	sbcl --load start-swank.lisp
+
+2010-03-19  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (slime-lisp-implementation-program): New connection
+	variable.
+	(slime-set-connection-info): Adapted to set it.
+	(slime-attach-gdb): Use it to invoke gdb so gdb is able to find
+	debugging symbols on non-Linux platforms.
+
+	* swank.lisp (connection-info): Include lisp-implementation-program.
+
+	* swank-backend.lisp (lisp-implementation-program): New interface.
+	Default implementation based on command-line-args.
+
+	* swank-ecl.lisp (command-line-args): Implement.
+
+2010-03-18  Tobias C. Rittweiler <tcr@freebits.de>
+
+	Remove attach-gdb restart. Instead add SLDB shortcut `A'.
+
+	* slime.el (slime-dispatch-event): Remove :gdb-attach.
+	(slime-attach-gdb): Changed API. Takes connection not pid now and
+	lightweight &optional arg. If not lightweight, get the default gdb
+	config from the inferior Lisp.
+	(sldb-break-with-system-debugger): New command, bound to `A' in
+	sldb. Called this way to mimick
+	`sldb-break-with-default-debugger', and because it may make sense
+	to go beyond gdb in future, e.g. to invoke the Java Debugger for
+	ABCL.
+
+	* swank.lisp (call-with-gdb-restart, with-gdb-restart): Removed.
+	(with-top-level-restart): Remove use of with-gdb-restart.
+	(make-connection, start-server, create-server, setup-server):
+	Remove inferior-lisp flag again. Not needed anymore.
+
+2010-03-18  Tobias C. Rittweiler <tcr@freebits.de>
+
+	Add M-x slime-attach-gdb as an interactive function.
+
+	The ATTACH-GDB restart is nice because it's convenient and the
+	backends can specify customized gdb configuration.
+
+	Sometimes, if the Lisp is too screwed up, going over a restart
+	involving the SWANK middle layer may not be possible. For that, a
+	manual M-x slime-attach-gdb may come in handy.
+
+	* slime.el (slime-read-connection): New helper.
+	(slime-attach-gdb): Use it. Make it an interactive function.
+
+2010-03-18  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (call-with-gdb-restart): Forgot to remove trailing T.
+
+2010-03-18  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (open-dedicated-output-stream): Forgot to rename
+	accept-authenticated-connection to accept-authenticated-client
+	here.
+
+2010-03-18  Tobias C. Rittweiler <tcr@freebits.de>
+
+	Add an ATTACH-GDB restart to SLDB.
+
+	* swank.lisp (call-with-gdb-restart): New. Sends the new
+	:gdb-attach event to Emacs.
+	(with-gdb-restart): Sugar.
+	(with-top-level-restart): Also expand to with-gdb-restart.
+	(dispatch-event): Add :gdb-attach event.
+
+	* swank-backend.lisp (gdb-initial-commands): New interface
+	function so backends can customize how gdb needs to be configured
+	for their implementation.
+
+	* swank-ecl.lisp (gdb-initial-commands): Implement.
+
+	* slime.el (slime-dispatch-event): Add clause for :gdb-attach.
+	(slime-attach-gdb): New.
+
+2010-03-18  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (connection): Add socket slot, make socket-io slot
+	not be required to be filled in during object creation. Add
+	inferior-lisp slot so we can know whether a connection belongs to
+	a superior Emacs process. Need for that will come in following
+	commit.
+	(make-connection): Our constructor.
+	(create-connection): Removed; not needed anymore.
+	(finish-connection-setup): Function to fill socket-io slot.
+	(start-server): Results in inferior-lisp slot being T.
+	(create-server): Results in inferior-lisp slot being NIL.
+	(setup-server): Adapted accordingly. Construct connection early so
+	we do not have to pass down all the meta information explicitly.
+	(serve-connection): Adapted accordingly.
+	(accept-authenticated-client): Renamed from
+	accept-authenticated-connection.
+	(dispatch-event): Get rid of unused :%apply and :end-of-stream
+	events.
+
+2010-03-16  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-ecl.lisp (source-location): Also return EXT::FOO as
+	candidate to search through the TAGS file because SI and EXT both
+	name the same package, and in ECL's code base, sometimes the
+	former, sometimes the latter is used.
+
+2010-03-10  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (signal-interrupt): Removed.
+	(interrupt-worker-thread): Slurp in definition of
+	signal-interrupt. No need for invoke-or-queue-interrupt twice in
+	case we do not use threads. Thus micro-prettification of
+	backtraces.
+
+2010-03-10  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-ecl.lisp (source-location): Move call to
+	TRANSLATE-LOGICAL-PATHNAME from here into MAKE-FILE-LOCATION
+	because locations-via-annotations may now also involve logical
+	pathnames.
+
+2010-03-10  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-ecl.lisp (*original-sigint-handler*)
+	(install-sigint-handler): Deleted; we directly implement
+	call-with-user-break-handler instead.
+	(call-with-user-break-handler): New. Correctly interrupt main
+	thread instead of newly spawned handle-signal thread on SIGINT.
+	(make-interrupt-handler): New helper.
+
+2010-03-09  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-ccl.lisp (emacs-inspect function): Print closed over variables
+	in case of closure.
+
+2010-03-09  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-parse-context): Add defclass.
+
+2010-03-09  Helmut Eller  <heller@common-lisp.net>
+
+	Some more fixes for Allegro
+
+	* swank-allegro.lisp (function-source-location): Use
+	xref::object-to-function-name which seems to work better for some
+	cases.
+	(fspec-definition-locations): For :top-level-forms return a list
+	of ((fspec loc)) not just (fspec loc).  Also deal with the file
+	vs. buffer issue.
+	(ldb-code-to-src-loc): Don't use *temp-file-map* before it is
+	declared.
+	(pc-source-location): Be a bit more fuzzy when searching the
+	code-location for a pc.
+
+2010-03-08  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-extract-context): Add defvar and defparameter.
+
+2010-03-08  Helmut Eller  <heller@common-lisp.net>
+
+	Fix some of the brokeness in the last change.
+
+	* swank-allegro.lisp (frame-source-location): Deal with frames for
+	undefined functions better.
+	(ldb-code-to-src-loc): Handle temp-files properly.
+
+2010-03-08  Helmut Eller  <heller@common-lisp.net>
+
+	Try to use source-level debugging features in Allegro 8.2
+
+	* swank-allegro.lisp (disassemble-frame): Use undocumented
+	debugger::dyn-fd-analyze to figure out the PC and display it.
+	(pc-source-location, ldb-code-to-src-loc, longest-common-prefix)
+	(source-paths-of): New functions.
+	(frame-source-location): Use pc-source-location.  Still far from
+	optimal since Allegro rarely records source regions and anonymous
+	functions don't seem to carry source level debug-info at all.
+	(*temp-file-map*, buffer-or-file-location, find-fspec-location):
+	Use a table to map temp-file names back to Emacs buffers instead
+	of putting an eval-when-compile form in the source.  The
+	eval-when-compile form messed up source positions.
+	(*temp-file-header-end-position*, find-definition-in-buffer):
+	Deleted.
+	(compile-from-temp-file): Bind excl:*load-source-debug-info* and
+	compiler:save-source-level-debug-info-switch so that Allegro
+	doesn't try to load debug-info from deleted files.  Also put
+	the filename in *temp-file-map*.
+
+2010-03-08  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (dispatch-interrupt-event): Take a connection because
+	it boils down to SIGNAL-INTERRUPT which uses USE-THREADS-P which
+	needs a connection.
+	(install-fd-handler): Adapted accordingly.
+	(simple-serve-requests): Adapted accordingly. Additionally, remove
+	superfluous WITH-SWANK-PROTOCOL-HANDLER as that's established by
+	WITH-CONNECTION already.
+	(simple-repl): Show "abort inferior lisp" restart only if not a
+	more appropriate "abort some REX" restart is available. Also make
+	sure to return in case of END-OF-FILE, otherwise there's an
+	infinite loop where we end up in the debugger again and again
+	until the user eventually selects close-connection restart himself.
+	(make-repl-input-stream): Use WITH-TOP-LEVEL-RESTART so
+	`sldb-quit' can be used in SLDB.
+
+2010-03-08  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (close-connection): Include initially passed
+	coding-system in debugging output.
+
+2010-03-08  Tobias C. Rittweiler <tcr@freebits.de>
+
+	Make swank:connection-info include information about initially
+	passed coding-system, and the resulting external-format of the
+	socket. Debugging aid.
+
+	* swank.lisp (connection.external-format): New function.
+	(start-server, create-server): Pass down coding-system, not
+	external-format.
+	(setup-server): Pass down both, coding-system and external-format.
+	(serve-connection): Ditto.
+	(create-connection): Set coding-system slot of CONNECTION.
+	(connection-info): Include coding-system and external-format.
+
+2010-03-07  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-allegro.lisp (count-cr): Deleted.  No longer used.
+
+2010-03-07  Helmut Eller  <heller@common-lisp.net>
+
+	Handle src-locs of compiler warnings in Allegro 8.2.
+	Didn't somebody already fix that?
+
+	* swank-allegro.lisp (location-for-warning)
+	(handle-undefined-functions-warning): In 8.2 src-locs include not
+	only start but also and end positions.
+
+2010-03-07  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-ecl.lisp (source-location): Don't do
+	(setq file (tmpfile-to-buffer file)) in a COND condition,
+	otherwise next cond clause will get null file.
+	Apply translate-logical-pathname to pathnames.
+
+2010-03-05  Helmut Eller  <heller@common-lisp.net>
+
+	Remove some unused stuff.
+
+	* swank-ccl.lisp (openmcl-set-debug-switches)
+	(*interesting-internal-frames*)
+	(interesting-frame-p): Unused. Deleted.
+
+2010-03-05  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-ccl.lisp: Indentation fixes.
+
+2010-03-05  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-ecl.lisp: Make backend depend on ECL version 10.3.1 which
+	just got released. We do not support older versions. Previous
+	version pretty much didn't work in combination with Slime anyway.
+
+2010-03-05  Tobias C. Rittweiler <tcr@freebits.de>
+
+	Ecl: Make M-. work on function interactively compiled via C-c C-c.
+
+	* swank-ecl.lisp (*tmpfile-map*, note-buffer-tmpfile)
+	(tmpfile-to-buffer): New helpers.
+	(swank-compile-string): Use them. Also use new COMPILE-FILE
+	keywords :SOURCE-TRUENAME and :SOURCE-OFFSET available in ECL
+	HEAD.
+	(find-definitions): Slurp in definition of
+	FIND-DEFINITIONS-BY-NAME.
+	(find-definitions-by-name): Hence not needed anymore.
+	(source-location): Use TMPFILE-TO-BUFFER to get buffer source
+	location of interactively compiled functions.
+
+2010-03-04  Mark Evenson  <evenson@panix.com>
+
+	* swank-abcl.lisp (emacs-inspect): Define default method to use
+	the result of SYS:INSPECTED-PARTS if non-nil.
+
+2010-03-03  Stas Boukarev  <stassats@gmail.com>
+
+	* doc/slime.texi (Inspector): document slime-inspector-eval.
+	Patch by Mark Harig.
+
+2010-03-03  Helmut Eller  <heller@common-lisp.net>
+
+	Don't special case special operators with M-. for CMUCL.
+
+	* swank-cmucl.lisp (function-definitions): Special operators will
+	have IR1-translators anyway, so no need to mark them "special".
+	(gf-definitions): Renamed from generic-function-definitions.
+
+2010-03-03  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (slime-inspector-history): New command.
+
+2010-03-03  Helmut Eller  <heller@common-lisp.net>
+
+	Don't try to bind keywords in inspector-eval.
+
+	* swank.lisp (inspector-eval): For now, don't bind symbols which
+	are constantp.  Maybe something better can be found later.
+
+2010-03-03  Helmut Eller  <heller@common-lisp.net>
+
+	Use @ instead of # to mark object in the inspect history.
+
+	* swank.lisp (print-part-to-string): Use @.
+
+2010-03-03  Helmut Eller  <heller@common-lisp.net>
+
+	Make eval-in-frame display multiple values; not only the first.
+
+	* swank.lisp (values-to-string): New macro.
+	(eval-string-in-frame): Use it.
+
+2010-03-02  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-sbcl.lisp (definition-source-for-emacs): Don't error when
+	source location doesn't contain form position, point emacs to the
+	beginning of a source file and if it's a function provide a
+	snippet "(defun <name> ".
+
+2010-03-02  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-compile-and-load-file): Accept C-u arguments for
+	compilation policy the same way as slime-compile-defun.
+
+	* swank.lisp (compile-file-for-emacs): Take an additional policy
+	argument.
+	* swank-backend.lisp (swank-compile-file): Ditto.
+
+	* swank-sbcl.lisp (compiler-policy, (setf compiler-policy)):
+	rename from get/set-compiler-policy.
+	(with-compiler-policy): New macro.
+	(swank-compile-file): Use with-compiler-policy.
+	(swank-compile-string): Ditto.
+
+	* doc/slime.texi (Compilation): Update.
+
+2010-03-01  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (documentation-symbol): Show arglists for functions too.
+
+2010-03-01  Tobias C. Rittweiler <tcr@freebits.de>
+
+	Fix that annoying bug that caused being constantly asked to switch
+	connection in case one had multiple connections running and quit
+	from one.
+
+	* slime.el (slime-modeline-string): Bail out early because
+	`slime-current-package' involves `slime-connection' in case the
+	slime-repl contrib is used, and querying the user in a
+	periodically called function is rather annoying..
+
+2010-02-26  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-loader.lisp (ecl-version-string): Check length of
+	the result of ext:lisp-implementation-vcs-id before doing subseq.
+	On CVS it returns "unknown".
+
+2010-02-25  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-loader.lisp (ecl-version-string): In
+	#+(or) (progn #+#.(cl:print cl:nil) 1) PRINT does run on SBCL, which
+	breaks #+#.(cl:if (cl:find-symbol "SYMBOL" :ext) ...) here, guard it with
+	(find-package :ext) until further investigations.
+
+2010-02-25  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-loader.lisp (lisp-version-string): Add git-commit ids for
+	ECL because individual commits do not guarantee fasl
+	compatibility.
+
+2010-02-23  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-backend.lisp (when-let): New macro. For backends and
+	swank.lisp.
+
+	* swank-ecl.lisp: Use it. Also use new location support of ECL git
+	HEAD.
+
+2010-02-23  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (slime-postprocess-xref): Show a TAGS entry's hints as
+	part of an Xref's dspec for the case of multiple matches.
+
+2010-02-23  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-ecl.lisp (preferred-communication-style): Go back to
+	NIL. Some parts (like the compiler and CLOS) of ECL do not seem to
+	be thread-safe yet. Also get rid of non-working implementation of
+	:FD-HANDLER.
+	(poll-streams, wait-for-input): Implement on top of select() for
+	communication-style=NIL.
+	(*descriptor-handlers*, add-fd-handler, remove-fd-handlers): Get
+	rid of.
+	(grovel-docstring-for-arglist): Get rid of it, too.
+	(arglist): ECL now provides an extra accessor to a function's
+	arglist. Use that instead.
+	(emacs-inspect): Get rid of the default method. Don't see its
+	point.
+
+2010-02-22  Tobias C. Rittweiler <tcr@freebits.de>
+
+	Make swank-ecl.lisp work with latest ECL Git HEAD.
+
+	* swank-ecl.lisp (assert-TAGS-file): Simplified.
+	(assert-source-directory): New helper.
+	(c-function-p): New helper.
+	(c-function): Type based on above.
+	(source-location): Move bits from FIND-DEFINITIONS-FOR-TYPE to
+	this function. Use CONVERTING-ERRORS-TO-ERROR-LOCATION.
+	(find-definitions-for-type): Simplified by using it.
+
+2010-02-22  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-backend.lisp (converting-errors-to-error-location): Moved
+	here from swank-sbcl.lisp so other backends can make use of it, too.
+
+	* swank-sbcl.lisp: The above macro was called slightly
+	differently, so update uses accordingly.
+
+2010-02-22  Tobias C. Rittweiler <tcr@freebits.de>
+
+	Make M-. be able to jump right into the C source for ECL.
+
+	Because it's based on TAGS files, M-. and M-* will DTRT once in a
+	.c file.
+
+	* swank-ecl.lisp (assert-TAGS-file): New helper.
+	(classify-definition-name): Ditto.
+	(find-definitions-for-type): Ditto. Understands Lisp and C
+	functions.
+	(find-definitions): Use them.
+	(source-location): New helper. Extracted from FIND-SOURCE-LOCATION.
+	(find-source-location): Use it.
+	(swank-compile-string): Only try to delete temporary files if they
+	exist.
+
+2010-02-22  Tobias C. Rittweiler <tcr@freebits.de>
+
+	Make it possible for SWANK backends to specify locations based on
+	a TAGS file.
+
+	* slime.el (slime-postprocess-xref, slime-postprocess-xrefs): New
+	functions. They convert TAGS based locations from SWANK into
+	file+position based locations because the rest of Slime expects
+	and works with those.
+	(slime-find-definitions): Call slime-postprocess-xrefs.
+	(slime-xref): Ditto.
+	(slime-etags-to-locations): The function which does the actual
+	conversion. Extracted from `slime-etags-definitions'.
+	(slime-etags-definitions): Use it.
+
+	* swank-backend (defimplementation): Add implicit BLOCK.
+	(:etags-file, :tag): Mentioned for possible values in :LOCATION.
+
+2010-02-20  Tobias C. Rittweiler <tcr@freebits.de>
+
+	More work on ECL's swank-backend.
+
+	* swank-ecl.lisp (accept-connection): Handle :buffering, and
+	:external-format.
+	(external-format): New helper.
+	(find-external-format): Make sure to only return :default in case
+	ECL was built with --disable-unicode; it'll barf on anything else.
+	(socket-fd): Add two-way-stream case due to recent changes in ECL.
+	(make-file-location, make-buffer-location): New helpers.
+	(condition-location): Use them.
+	(swank-compile-file): Handle :external-format.
+	(compile-from-stream): Deleted. Slurped into swank-compile-string.
+	(swank-compile-string): Call SI:MKSTEMP correctly. Make sure to
+	also remove fasl file, not just source file.
+	(grovel-docstring-for-arglist): Do not look at "Syntax:" entry in
+	docstring because that was a kludge. Upstream ECL should be
+	modified instead.
+	(in-swank-package-p, is-swank-source-p, is-ignorable-fun-p):
+	Commented out. They make debugging ECL's swank-backend harder.
+
+2010-02-20  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-loader.lisp (*architecture-features*): Add :PENTIUM3 and
+	:PENTIUM4; they're used by ECL.
+	(handle-swank-load-error): Renamed from HANDLE-LOADTIME-ERROR. Use
+	*FASL-DIRECTORY* rather than (DEFAULT-FASL-DIR). Parametrize
+	context to differentiate b/w compilation/loading.
+	(compile-files): Adapted accordingly. Also make sure that an error
+	is signaled in case COMPILE-FILE returns NIL as primary result.
+
+2010-02-20  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-ccl.lisp: Remove outdated comment at the beginning
+	since it may be misleading.
+
+	* slime.el: In minor-mode-alist for slime-popup-buffer-mode,
+	run slime-modeline-string only if slime-mode isn't active, because
+	slime-mode runs slime-modeline-string from minor-mode-alist too
+	resulting in duplicate modeline strings.
+	Reported by Leo Liu.
+
+2010-02-18  Mark Harig <idirectscm@aim.com>
+
+	The compiler warns about various stuff. Fix some of it.
+
+	* slime.el (slime-add-local-hook): Remove support for Emacs 20.
+	(sldb-recenter-region): Use forward-line; not next-line.
+
+2010-02-17  Helmut Eller  <heller@common-lisp.net>
+
+	Add a command to eval stuff in the inspector.
+
+	* slime.el (slime-inspector-eval): New command.
+	(slime-inspector-mode-map): Bind it to 'e'.
+	* swank.lisp (inspector-eval): New function.
+	* swank-backend.lisp (eval-context): New function.
+	* swank-cmucl.lisp (eval-context): Implement it.
+
+2010-02-17  Helmut Eller  <heller@common-lisp.net>
+
+	Point-entered hooks in the xref buffer don't work so well.
+	Use forward/backward commands instead.
+
+	* slime.el (slime-xref-next-line, slime-xref-prev-line): New
+	commands.
+	(slime-xref-show-location): New aux function.
+	(slime-xref-mode-map): Remap up/down to next/prev location
+	commands.  Make SPC and RET do the same.
+
+2010-02-17  Helmut Eller  <heller@common-lisp.net>
+
+	Select the xref buffer.
+	I never could get used to the next/prev cycling.
+
+	* slime.el (slime-with-xref-buffer): Select the buffer.
+	(slime-insert-xrefs): Add point-entered hook to automatically
+	display the current location.
+	(slime-xref-entered): New function.
+	(slime-show-buffer-position): Don't use reposition-window which
+	seems very slow and doesn't even do a particularly good job.  The
+	new heuristic is much cruder but faster.
+	(slime-xref-mode-map): Remove apparently redundant bindings for
+	RET.
+
+2010-02-17  Helmut Eller  <heller@common-lisp.net>
+
+	Get rid or snapshots.
+
+	* slime.el (slime-narrowing-configuration, slime-emacs-snapshot)
+	(slime-current-narrowing-configuration)
+	(slime-set-narrowing-configuration, slime-current-emacs-snapshot)
+	(slime-set-emacs-snapshot)
+	(slime-current-emacs-snapshot-fingerprint, slime-frame-windows):
+	Deleted.  Update call-sites accordingly.
+
+2010-02-17  Helmut Eller  <heller@common-lisp.net>
+
+	Test suite hangs for CCL and CMUCL.
+
+	* slime.el ([test] compile-defun): Remove those compile-time read
+	errors for which some implementations invoke the debugger.
+	(sexp-at-point.1): Remove failing tests
+
+2010-02-16  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-loader.lisp: Compile files on ECL, too.
+
+2010-02-16  Tobias C. Rittweiler <tcr@freebits.de>
+
+	Pimp my swank.
+
+	* swank-ecl.lisp: We depend on ECL 10.2.1 which is not released
+	yet -- you need git/cvs HEAD. Added :spawn, and :fd-handler as
+	communication-style (Thanks to Ram Krishnan), improve compilation
+	hooks so highligting of warnings works, + various cleanup.
+
+2010-02-15  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (slime-load-contribs): Do not call SWANK-REQUIRE
+	asynchronously, if host Lisp uses :SPAWN that may result in the
+	attempt to load in code concurrently -- the host Lisp may not
+	support that.
+
+2010-02-14  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (slime-attempt-connection): Fix typo. Thanks to Mark
+	Harig for spotting it.
+
+2010-02-13  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (slime-attempt-connection): Do not keep on trying to
+	connect if inferior process died.
+
+2010-02-07  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-ecl.lisp: Update threading code. ECL doesn't still work
+	with :spawn, though. Work in progress.
+
+2010-02-07  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (xref-doit): Declare eql-specializing parameter
+	ignorable, as some implementations complain about them not being
+	used.
+
+2010-02-01  Mark Harig <idirectscm@aim.com>
+
+	* slime.el: Added missing pieces to make `slime-cycle-connections'
+	available from keystrokes.
+	(slime-prefix-bindings): Added "\C-xn" entry.
+	(slime-cycle-connections): Corrected grammar in doc string.
+	(def-slime-selector-method): Added menu item `n' to SLIME selector
+	menu.
+
+	* doc/slime.texi: Added a description for the new key sequence for
+	`slime-cycle-connections' and for the new menu item in the SLIME
+	selector menu.
+	Node slime-selector: Added menu item `n' and cross-references to
+	"Multiple Connections" node.
+	Node Multiple connections: Added C-c C-x n description.  Added
+	cross-references to `slime-selector' node.
+
+2010-01-31  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* hyperspec.el: When using C-c C-d ~ TAB, previously there were
+	entries for "C" and "C: Character", which unpleasingly crowded the
+	completion buffer, so I made it show one entry ("C - Character")
+	only. RIP, erik.
+
+2010-01-30  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-cycle-connections): Change docstring, it
+	doesn't make connection buffer-local.
+	* doc/slime.texi (Multiple connections): document
+	slime-cycle-connections.
+
+	* swank.lisp (pathname-as-directory): Treat "/foo/bar" and "/foo/bar/"
+	the same.
+	(compile-file-output): Use the above function.
+
+2010-01-28  Mark Evenson  <evenson@dada.local>
+
+	* swank-abcl.lisp (emacs-inspect): Make inspection of Java objects
+	toString() results dependent on explicit user request to avoid
+	potentially computationally expensive operations.
+
+2010-01-27  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-rpc.lisp: NIL -> nil (for unusual readtable settings).
+	Spotted by Harald Hanche-Olsen.
+
+2010-01-26  Mark Evenson  <evenson@dada.local>
+
+	* swank-abcl.lisp: Import
+	MOP::COMPUTE-APPLICABLE-METHODS-USING-CLASSES if it exists in the
+	ABCL implementation.
+
+2010-01-25  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-allegro.lisp (redefinition-p, redefinition): New.
+	(handle-compiler-warning): Add :severity for redefinitions,
+	style-warnings, errors.
+
+2010-01-21  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-ccl.lisp (with-frame): Put this macro before it's used.
+
+2010-01-20  Terje Norderhaug <terje@in-progress.com>
+
+	* swank.lisp (with-swank-protocol-error-handler): Refactor using safe-backtrace.
+	* swank-rpc.lisp (make-swank-protocol-error): Delete call to swank:safe-backtrace
+	to eliminate dependency on swank.lisp module.
+	* swank-rpc.lisp (swank-protocol-error): Remove swank-protocol-error.backtrace
+	as the capture of a safe-backtrace is covered by with-swank-protocol-error-handler.
+
+2010-01-20  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-thread-kill): If the region is active, then
+	kill all threads in the region.
+
+2010-01-19  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-rpc.lisp (:swank-rpc): (:use :cl), SBCL
+	doesn't use it by default.
+
+2010-01-19  Terje Norderhaug  <terje@in-progress.com>
+
+	* Refactorized parts of swank.lisp into a new swank-rpc module.
+
+2010-01-14  Stas Boukarev  <stassats@gmail.com>
+
+	* doc/slime.texi (Setting up the lisp image):
+	(swank-loader:init) is also needed for loading swank.
+	Reported by Evgeny Bahvalov.
+
+2010-01-13  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (*swank-state-stack*): Delete. Not needed anymore.
+	(defslimefun state-stack): Delete.
+	(decode-message): Adapted.
+	(debug-in-emacs): Adapted.
+
+2010-01-11  Mark Evenson  <evenson@dada.local>
+
+	* swank-abcl.lisp (emacs-inspect): Implementation for Java
+	objects.
+
+	Fix compiler warning about *ABCL-SIGNALED-CONDITIONS*.
+
+2010-01-06  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-backend (declaration-arglist): Normalize declaration
+	specifiers to contain `variables' rather than `vars'.
+
+2010-01-05  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-sbcl.lisp (compiler-note-location): Add missing return-from.
+
+2010-01-05  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (compile-defun [test]): Add two cases.
+
+2010-01-05  Cecil Westerhof  <Cecil@decebal.nl>
+
+	* slime.texi (inferior-slime-mode): Fix thinko.
+
+2010-01-05  Terje Norderhaug  <terje@in-progress.com>
+
+	Provide default implementation for all-threads.
+
+	* swank-backend.lisp (all-threads): Just return ().
+
+2010-01-05  Helmut Eller  <heller@common-lisp.net>
+
+	Fix M-. bug related to CMUCL's multi-file compilation units.
+
+	* swank-cmucl.lisp (code-location-stream-position): Require the
+	"root-number" as argument and subtract it from the TLF number.
+	(location-in-file): Pass the root number along.
+	(code-location-string-offset): Use 0 as root number.
+
+2010-01-05  Helmut Eller  <heller@common-lisp.net>
+
+	Slightly better error message when CMUCL fails to find defstructs.
+
+	* swank-cmucl.lisp (struct-constructor, setf-definitions): Don't
+	use COERCE which gives confusing error message.
+
+2010-01-05  Helmut Eller  <heller@common-lisp.net>
+
+	Add "quit" and "other window prefix" buffer selectors.
+
+	* slime.el (slime-selector-other-window): New variable.
+	(slime-selector): Bind it as need.
+	(def-slime-selector-method): Use the other window if so indicated.
+	([selector] 4): New key binding.
+	([selector] q): New key binding. just abort.
+
+2010-01-05  Helmut Eller  <heller@common-lisp.net>
+
+	Stop the beeping on restart.
+
+	* slime.el (slime-quit-lisp-internal): Don't kill already dead
+	processes.
+
+2010-01-03  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-backend.lisp (frame-call): New function.
+	Returns a string representing a call to the entry point of a frame.
+	* swank-ccl.lisp (frame-call): Implementation of the above.
+	* swank-sbcl.lisp (frame-call): Ditto.
+
+2010-01-03  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (with-swank-protocol-error-handler): Remove debugging
+	bits.
+
+2010-01-03  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (slime-next-read-or-lose): Call `debug' with the error
+	condition, so we can see what actually caused the losage.
+
+2010-01-03  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (compile-defun [test]): Also test proper notification
+	after reader-error. Additionally: bind font-lock-verbose to nil to
+	prevent annoying font-lock messages during the test.
+
+	* swank-sbcl.lisp (signal-compiler-condition): Make sure
+	READER-ERROR comes before ERROR in typecase.
+	(swank-compile-file): Remove handling FATAL-COMPILER-HANDLER
+	because a) this handling prevents sbcl from printing the
+	diagnostics to the repl, and b) sbcl itself should handle this and
+	translate it into proper return value for compile-file.
+
+2009-12-23  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (complete-symbol [test]): Fix test case.
+
+2009-12-22  Helmut Eller  <heller@common-lisp.net>
+
+	Some new backend functions used for loading image files.
+
+	* swank-backend.lisp (socket-fd, make-fd-stream, dup, exec-image)
+	(command-line-args): New functions.
+	* swank-cmucl.lisp: Impemented.
+	* swank-cmucl.lisp (reset-sigio-handlers): New function.
+	(save-image): Fix quoting bug.
+
+	* swank.lisp (clear-event-history): New functoin.
+	(interactive-eval, eval-region): Don't use FRESH-LINE.
+
+2009-12-21  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (slime-at-list-p): Deleted.
+	(slime-at-expression-p): Moved to slime-package-fu.
+	(slime-forward-blanks): Deleted. Use `(skip-chars-forward
+	"[:space:]")' instead.
+	(slime-forward-any-comment): Deleted.
+	(slime-reader-conditionals-regexp): Make a constant so it's
+	inlined.
+	(slime-unknown-feature-expression): Make it an error.
+
+2009-12-19  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-backend.lisp (defpackage): export with-symbol and
+	replace its fully qualified usage everywhere.
+
+2009-12-17  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (slime-edit-uses-xrefs): New variable. For contribs to
+	extend.
+	(slime-edit-uses): Use it.
+
+	* swank.lisp (xref-doit): Now a generic functions. For contribs to
+	extend.
+
+2009-12-17  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (with-top-level-restart): Bind local special.
+	(top-level-restart-p): Check for it; this tells us if we're in
+	the dynamic extent of with-top-level-restart.
+	(handle-requests): Use it.
+
+2009-12-17  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-match.lisp: Fix formatting and style warnings.
+
+2009-12-17  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (handle-requests): Comment out
+	(assert (boundp '*sldb-quit-restart*)) because it's not bound
+	on NIL communication style. It's not a real fix, but at least it
+	lets null communication-style work.
+
+2009-12-16  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-sbcl.lisp (categorize-definition-source): New.
+	(definition-source-for-emacs): Use it. Slightly
+	refactored. Renamed from `make-definition-source-location'.
+	(find-definitions, find-source-location)
+	(source-location-for-xref-data, function-dspec): Updated
+	accordingly.
+	(source-file-position): Scratch last argument, not needed anymore.
+
+2009-12-16  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (compile-file-output): Use
+	(make-pathname :directory dir :defaults (compile-file-pathname file))
+	instead of (compile-file-pathname file :output-file dir),
+	because the latter works differently on different implementations.
+	(fasl-pathname): Use the above function.
+
+2009-12-16  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (*sldb-quit-restart*): Export. For users to customize
+	what `q' does in SLDB.
+	(handle-requests): Test differently for recursive invocations
+	as *sldb-quit-restart* may now be globally bound due to user
+	customization.
+	(coerce-restart): Coerces a restart-designator to a restart.
+	(throw-to-toplevel): Use it.
+
+	* slime.texi (swank:*sldb-quit-restart*): Document it.
+
+2009-12-15  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (collect-notes): Establish new abort restart ("Abort
+	Compilation"); if an error is signaled in EVAL-WHEN, or during
+	macroexpansion -- assuming the backend DTRT --, invoking this
+	restart will result in the normal compilation failure behaviour,
+	including correct reporting of the offending toplevel form.
+
+	* swank-sbcl.lisp (handle-notification-condition): Use
+	`real-condition' here.
+	(handle-file-compiler-termination): As a result, not needed anymore.
+	(call-with-compilation-hooks): Also signal information about
+	normal errors.
+
+2009-12-14  Stas Boukarev  <stassats@gmail.com>
+
+	* doc/slime.texi (ASDF): Document new commands.
+
+2009-12-12  Matthias Koeppe  <mkoeppe@math.ucdavis.edu>
+
+	* doc/slime.texi (Presentations): Add an example that illustrates
+	quoting necessary with presentations that are lists.
+
+2009-12-11  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-allegro.lisp: Use new function `make-error-location'.
+	(find-fspec-location): Handle errors.
+	Patch by Tobias C. Rittweiler.
+
+2009-12-11  Tobias C. Rittweiler <tcr@freebits.de>
+
+	Add `M-x slime-toggle-debug-on-swank-error'.
+
+	In "Debug on SWANK error" mode, errors which are normally caught
+	to not annoy the user, will now drop into the debugger.
+
+	Additionally, the backend won't do any backtrace magic so you'll
+	see the full backtrace with all its glory details. (SBCL only so
+	far.)
+
+	* slime.el (slime-toggle-debug-on-swank-error): New.
+
+	* swank.lisp (toggle-debug-on-swank-error): New slimefun.
+	(debug-on-swank-error): New function. SETFable.
+	(invoke-default-debugger): Use CALL-WITH-DEBUGGER-HOOK so we're
+	trapped into the native debugger on SBCL (previously we weren't
+	due to SB-EXT:*INVOKE-DEBUGGER-HOOK*.)
+
+	* swank.lisp: Rename SWANK-ERROR to SWANK-PROTOCOL-ERROR.
+
+2009-12-11  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-sbcl.lisp (call-with-debugger-hook): Oops, removed the
+	binding for *DEBUGGER-HOOK*. Fix that.
+	(make-invoke-debugger-hook): Do nothing if hook is NIL.
+
+2009-12-10  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-backend.lisp (*debug-swank-backend*): New variable. If
+	true, backends should not catch internal errors (e.g. during
+	definition finding), and should not perform backtrace magic.
+	(make-error-location): New helper.
+	(find-definitions [interface]): Default to error location.
+
+	* swank-sbcl.lisp (converting-errors-to-location): New helper
+	macro. Regards new *DEBUG-SWANK-BACKEND*.
+	(find-definitions [implementation]): Use it.
+	(find-source-location [implementation]): Ditto.
+	(functiond-spec): Ditto.
+	(frame-source-location [implementation]): Ditto.
+	(*debug-definition-finding*): Removed.
+	(make-source-location-specification): Removed.
+	(safe-function-source-location): Removed.
+	(safe-source-location-for-emacs): Removed. Not needed anymore.
+
+	(call-with-debugging-environment): Do not perform stack hinting
+	depending on *DEBUG-SWANK-BACKEND*.
+
+2009-12-10  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-sbcl.lisp (set-break-hook): New.
+	(call-with-break-hook): New, too. Both extracted from elsewhere.
+	(install-debugger-globally, call-with-debugger-hook): Use them.
+	(make-invoke-debugger-hook): Adapted not to call *debugger-hook*
+	on its own; it should rather decline because *debugger-hook* is
+	tried after *invoke-debugger-hook* anyway. Previously, a
+	custom *debugger-hook* (which declines itself) would have been
+	executed twice.
+
+2009-12-07  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-parse-toplevel-form): Use
+	`slime-region-for-defun-at-point' instead of `beginning-of-defun'.
+
+2009-12-03  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (slime-documentation-lookup-function): New hook,
+	defaults to `slime-hyperspec-lookup'.
+	(slime-documentation-lookup): Invoke hook.
+	(slime-prefix-bindings): Bind `C-c C-d h' to it.
+
+2009-12-02  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-sbcl.lisp (frame-locals): `frame-debug-vars' can return NIL,
+	so check before using it as a vector.
+	Patch by Nathan Bird.
+
+2009-11-30  Helmut Eller  <heller@common-lisp.net>
+
+	Add a slime-editing-map as suggested by Attila Lendvai.  The main
+	purpose is to create a keymap that's shared by the REPL and other
+	modes so that adding custom bindings gets a bit easier.
+
+	* slime.el (slime-editing-map, slime-mode-indirect-map): New variables.
+	(slime-init-keymaps): Clear out any existing bindings before
+	building the new keymaps.
+	(slime-init-keymap): New helper.
+	(slime-bind-keys): Renamed&extended from
+	slime-define-both-key-bindings.
+
+	* slime.el (slime-editing-mode): New minor mode for use
+	in the REPL.
+
+2009-11-26  Mark Evenson  <evenson@panix.com>
+
+	* swank-abcl.lisp (arglist):  Fixes for functions with non-nil
+	arglist and for generic functions with empty argument lists.
+
+	Diagnosed and cured by Matthias Hölzl.
+
+2009-11-23  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-set-connection-info): Set slime-current-thread to t
+	before doing anything. Solves a bug reported by Slawek Zak.
+
+2009-11-21  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-sbcl.lisp (who-specializes): Implement.
+	Requires SBCL 1.0.32.
+
+2009-11-19  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (slime-minibuffer-map): Nee `slime-read-expression-map'
+	(slime-minibuffer-history): Nee `slime-read-expression-history'
+	(slime-minibuffer-setup-hook): Extracted.
+	(slime-read-from-minibuffer): Adapted accordingly.
+
+2009-11-13  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (classify-symbol): Check fbound before calling fdefinition,
+	ECL doesn't like (fdefinition nil).
+
+	* swank-ecl.lisp (swank-mop:compute-applicable-methods-using-classes):
+	Add a dummy function. ECL doesn't have it, but some contribs are using it.
+	Patch by Andy Hefner.
+
+2009-11-13  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-ecl.lisp (function-name): Use clos:generic-function-name
+	for generic functions.
+	(arglist): Check fro symbol before calling special-operator-p and
+	macro-function.
+	Patch by Andy Hefner.
+
+2009-11-06  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-ecl.lisp (grovel-docstring-for-arglist): ECL's arglists
+	for macros include macro name at the first place, unlike arglists
+	for functions. cdr arglists only for macros and special operators.
+	Reported by Andy Hefner.
+	(find-source-location): Missing comma before error message formatting.
+	Patch by Andy Hefner.
+
+2009-11-05  Tobias C. Rittweiler <tcr@freebits.de>
+
+	Make C-c C-c operate on region if mark is active (and Transient
+	Mark mode is enabled.)
+
+	* slime.el (slime-compile-defun): Operate on region if
+	transient-mark-mode is active.
+
+2009-11-03  Helmut Eller  <heller@common-lisp.net>
+
+	Ask gdb for source lines of foreign functions.
+
+	* swank-cmucl.lisp (frame-source-location): Handle foreign
+	frames with gdb.
+	(frame-ip): Handle bogus frames (on x86)
+	(disassemble-frame): Use gdb for foreign frames.
+	(foreign-frame-p, foreign-frame-source-location): New functions.
+	(gdb-command, gdb-exec, parse-gdb-line-info, read-word)
+	(whitespacep, with-temporary-file, call/temporary-file): New
+	helpers.
+
+2009-11-03  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (sldb-setup): Do (set-syntax-table lisp-mode-syntax-table)
+	otherwise functions used by autodoc do not work properly.
+
+2009-11-03  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (sldb-backward-frame): If the point is at the end of
+	the buffer, there is no property, handle this case.
+
+	* swank.lisp (collect-notes): LOAD returns generalized boolean,
+	not just boolean, but make-compilation-result accepts only booleans
+	for its second argument.
+
+	Both bugs reported by Derrell Piper.
+
+2009-11-02  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (slime-end-of-symbol): Make sure not to move on #'foo.
+	([test] sexp-at-point.1): New test case.
+
+2009-11-02  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (without-interrupts): Removed. No longer used.
+	* swank-backend.lisp (call-without-interrupts): Removed.
+	Update backends accoringly.
+
+2009-11-02  Helmut Eller  <heller@common-lisp.net>
+
+	CCL's lap-functions don't have source-notes but the name often
+	has.  E.g. ccl::%fixnum-truncate.  Use names as last resort.
+
+	* swank-ccl.lisp (function-name-source-note): New function.
+	(pc-source-location): Use it.
+
+2009-11-02  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (tokenize-symbol-thoroughly): Return NIL
+	instead of throwing an error.
+	(parse-symbol): Handle null result of tokenize-symbol-thoroughly.
+
+	This fixes a bug reported by Derrell Piper.
+
+2009-10-31  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (slime-bug): Deleted.
+
+2009-10-31  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (slime-inside-string-p, slime-inside-comment-p)
+	(slime-inside-string-or-comment-p): New.
+
+	* swank-match.lisp: New file. Contains very simple pattern matcher
+	from the CMU AI archive.
+
+	* swank-loader.lisp: Compile swank-match.lisp.
+
+	* swank.lisp: Make SWANK package use new SWANK-MATCH package.
+
+2009-10-31  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (find-symbol-with-status): New.
+	(parse-symbol): Use it to correctly parse symbols where only one
+	colon is given. Consequences: Autodoc won't display an arglist on
+	`(foo:bar |' if BAR is not exported from FOO.
+
+2009-10-31  Helmut Eller  <heller@common-lisp.net>
+
+	* swank.lisp (list-threads): Remove thread-description.  Wasn't
+	used anymore.
+	* swank-backend.lisp (thread-description, set-thread-description):
+	Deleted.
+	* swank-abcl.lisp: Update accordingly.
+	* slime.el (slime-update-threads-buffer, slime-thread-insert):
+	Update accordingly.
+
+2009-10-31  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-ccl.lisp (kill-thread): Don't signal conditions.
+	* swank-backend.lisp (kill-thread): Update docstring.
+
+2009-10-30  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-loader.lisp (setup): Use EXT:PROBE-DIRECTORY on Clisp,
+	because PROBE-FILE doesn't want to work on directories.
+	Patch by Dirk Sondermann.
+
+2009-10-30  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-openmcl.lisp: Removed. 1.4 is out so no longer needed.
+	* swank-ccl.lisp: Update accordingly.
+
+	* test-all.sh: Removed. Not used in ages.
+
+2009-10-28  Helmut Eller  <heller@common-lisp.net>
+
+	Simpler modeline code.
+
+	* slime.el (slime-modeline-string): Renamed from
+	slime-compute-modeline-string.
+	(slime-modeline-state-string): Renamed from
+	slime-compute-connection-state
+	(slime-modeline-package, slime-modeline-connection-name)
+	(slime-modeline-connection-state)
+	(slime-extended-modeline,slime-compute-modeline-package)
+	(slime-update-modeline-string, slime-shall-we-update-modeline-p)
+	(slime-update-all-modelines, slime-modeline-update-timer)
+	(slime-restart-or-init-modeline-update-timer)
+	(slime-connection-state-as-string): Deleted
+	(slime-stale-connection-p): Deleted.
+
+2009-10-28  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (slime-disconnect): Don't reference connection.  Left
+	over from last change.
+	([test] arglist): Update expected results for slightly changed
+	printer settings.
+	([test] indentation): Install common-lisp-indent-function.
+	([undefun] display-warning): Fix it.
+
+	* test.sh: Don't copy contribs. Slime should work without them.
+	* swank-loader.lisp (setup): Compile contribs only if directory
+	exists.
+
+2009-10-28  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (slime-format-display-message, slime-display-message)
+	(slime-create-message-window): Deleted.  The trick with the
+	pre-command-hook doesn't work in XEmacs 21.5.  So use the standard
+	message function.  One day XEmacs will learn how to resize the
+	minibuffer, but until then we have to live with one-line messages.
+
+2009-10-27  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el: Fix some docstrings and comments.
+
+2009-10-26  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* test.sh: Shebang on bash, not just on sh.
+
+2009-10-25  Tobias C. Rittweiler <tcr@freebits.de>
+
+	Revert the reversed numbering of restarts in sldb.
+
+	New command `sldb-cycle' ([tab]) in sldb will cycle between
+	restart list and backtrace.
+
+	Make sldb-invoke-restart-by-name case-insensitive.
+
+	* slime.el (sldb-mode-map): Bind Tab to `sldb-cycle'.
+	(sldb-restart-list-start-marker): New variable.
+	(sldb-setup): Store marker in it.
+	(sldb-cycle): New command to cycle between restart list and
+	backtrace.
+	(sldb-invoke-restart-by-name): Make completion case-insensitive.
+	(sldb-insert-restarts): Revert to old behaviour.
+
+2009-10-24  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-ccl.lisp (who-specializes): Do not signal an error if
+	argument does not name a class.
+
+2009-10-24  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (xref): Deal with non-yet-interned names gracefully.
+
+2009-10-24  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (slime-search-property): Add parameter to get value at
+	point propery changed.
+	(slime-find-next-note): Use it.
+	(slime-find-previous-note): Ditto.
+
+2009-10-24  Tobias C. Rittweiler <tcr@freebits.de>
+
+	New command C-M-, to go to previous xref location.
+
+	[Old command C-M-. to go to next xref location.]
+
+	Xref buffers are not automatically selected anymore; it's more
+	ergonomic to cycle through them via C-M-. and C-M-, from
+	within the source buffer.
+
+	* slime.el (slime-search-property): Simplify slightly.
+	(slime-find-next-note): Use it.
+	(slime-find-previous-note): Use it, too.
+	(slime-find-note): Deleted.
+	(slime-editing-keys): Add C-M-,.
+	(slime-previous-location-function): New variable.
+	(slime-previous-location): New command.
+	(slime-with-xref-buffer): Do not select Xref buffer.
+	(slime-show-xref-buffer): Adapted accordingly.
+	(slime-goto-next-xref): Highlight current item on C-M-. and C-M-,.
+	(slime-goto-previous-xref): New.
+	(slime-highlight-sexp): Renamed from `sldb-highlight-sexp'.
+	(slime-highlight-line): New.
+
+2009-10-24  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (sldb-insert-restarts): Insert the proper numbers for
+	the --more-- button.
+	(sldb-restart-number-at-point): Rename back to
+	sldb-restart-at-point.  Don't use
+	confisingly-verbose-names-for-no-good-reason.
+	(sldb-restart-number-for-swank): Deleted.
+
+2009-10-23  Tobias C. Rittweiler <tcr@freebits.de>
+
+	Restarts in SLDB are now numbered reversely. The rationale is that
+	always-existing restarts are likely to be associated with the same
+	number now.
+
+	* slime.el (sldb-insert-restarts): Number restart reversely.
+	(sldb-restart-number-for-swank): New; recompute the unreversed
+	number for the swank side.
+	(sldb-restart-number-at-point): Previously `sldb-restart-at-point'.
+	(sldb-invoke-restart): Adapted accordingly.
+
+2009-10-23  Tobias C. Rittweiler <tcr@freebits.de>
+
+	When ever Slime seems to get stuck (e.g. after some character
+	encoding confusion), `M-x slime-reset' should hopefully bring it
+	into a functional state again.
+
+	* slime.el (slime-reset): Erase connection buffer.
+
+2009-10-21  Tobias C. Rittweiler <tcr@freebits.de>
+
+	Make M-x slime-changelog-date work.
+
+	* slime.el (slime-changelog-date): Make the function be callable
+	interactively.
+
+2009-10-21  Stas Boukarev  <stassats@gmail.com>
+
+	* doc/slime.texi (ASDF): Document new commands.
+
+2009-10-20  Martin Simmons  <martin@lispworks.com>
+
+	* swank-lispworks.lisp (call-without-interrupts): Discourage use.
+	(interesting-frame-p): Never show open frame bogons.
+
+2009-10-19  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-sbcl.lisp (thread-description): Remove it and supporting code,
+	because it didn't really work.
+
+	* swank.lisp (with-thread-description): Remove unused macro.
+
+	* slime.el (slime-list-threads): Update information before
+	setting the mode, otherwise it messes up current connection.
+
+	* doc/slime.texi: fix typo.
+
+2009-10-19  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank.lisp (without-printing-errors): New macro.
+	(to-string): Use it.
+	(to-line): Use it, too. This fixes printing error occuring during
+	inspecting to prevent the inspector from displaying something
+	useful.
+
+	Reported by xristos@suspicious.org.
+
+2009-10-15  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (slime-current-package): Move REPL stuff to contrib.
+
+2009-10-15  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-current-package): Return REPL's package,
+	if other are unavailable and if slime-repl is loaded.
+
+2009-10-12  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el: Update copyright.
+
+2009-10-10  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (slime-length=): Fix (slime-length= '() 0).
+	(slime-eval-feature-expression): Fix. Couldn't handle (NOT)
+	and (NOT FOO BAR).
+
+2009-10-09  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (stop-server): (list-threads) returns threads offset by 1,
+	don't kill the wrong thread.
+
+2009-10-06  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-ccl.lisp (map-backtrace): Handle null end-frame-number argument.
+
+2009-09-28  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (set-package): Provide a more meaningful error
+	message when package doesn't exist.
+
+	* swank-lispworks.lisp (replace-strings-with-symbols): Didn't work on
+	non-proper lists. Reported by Madhu.
+
+2009-09-27  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-sbcl.lisp (call-with-debugger-hook): Correctly deal with
+	case of HOOK being NIL.
+	(make-definition-source-location): Somewhat simplified.
+	(string-path-snippet): Removed, not needed anymore.
+
+2009-09-24  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-sbcl.lisp (swank-compile-string): Ignore unused variable
+	warningsp.
+
+2009-09-23  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-sbcl.lisp (receive-if): Bind *break-on-signals* to
+	nil before using with-timeout.
+
+2009-09-22  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-ccl.lisp (find-definitions): For fbound symbols also
+	consider source-notes in the function object.  Useful if
+	the function slot was set with (setf (symbol-function ..))
+	and not by defun.
+
+2009-09-21  Stas Boukarev  <stassats@gmail.com>
+
+	* doc/slime.texi (slime-sprof): document slime-sprof contrib.
+
+2009-09-20  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-abcl.lisp (thread-description): Fix typo.
+	(set-thread-description): Ditto.
+
+2009-09-20  Tobias C. Rittweiler <tcr@freebits.de>
+
+	Generalize M-? (or M-_ respectively.)
+
+	It will now list:
+
+	  - call sites for functions,
+
+	  - macroexpand sites for macros,
+
+	  - binding, setting, referencing sites for variables,
+
+	  - specializing methods for classes.
+
+	* slime.el (slime-xref): Deal with :not-implemented.
+	(slime-xrefs): New. Makes RPC request to XREFS.
+	(slime-edit-callers): Renamed to `slime-edit-uses'.
+	(slime-edit-uses): Use slime-xrefs.
+
+	* swank-backend.lisp (who-*): Add default implementation which
+	returns :not-implemented.
+
+	* swank.lisp (xref-doit): Extracted from XREF.
+	(xref): Pass over :not-implemented to Emacs side.
+	(xrefs): New slime fun. To return results of multiple XREF
+	requests at once.
+
+2009-09-20  Mark Evenson  <evenson@panix.com>
+
+	Use *INVOKE-DEBUGGER-HOOK* introduced in ABCL by analogy to SBCL
+	 (Tobias Rittweiler).
+
+	* swank-abcl.lisp (sys::break): Conditionally redefine SYS::BREAK
+	only if SYS::INVOKE-DEUBBGER-HOOK is not present.
+
+2009-09-18  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* slime.el (slime-parent-bindings): Define M-? as
+	`slime-edit-callers', too. My previous choice of M-_ was warped
+	due to my German layout.
+
+2009-09-18  Tobias C. Rittweiler <tcr@freebits.de>
+
+	New binding: M-_ (`slime-edit-callers').
+
+	Similiar to `slime-who-calls' but only creates an Xref buffer if
+	needed for disambiguation, and also pushes to the definition
+	stack.
+
+	Spiritually like M-. but works "in the other direction".
+
+	* slime.el (sllime-edit-callers): New function. Cross between
+	`slime-who-calls' and `slime-edit-definition'.
+	(slime-parent-bindings): Define M-_ as `slime-edit-callers'.
+	(slime-pop-xref-buffer): New helper. Extracted from
+	`slime-show-xrefs'.
+	(slime-show-xrefs): Use it.
+	(slime-xref): Let callers specify a continuation.
+
+2009-09-17  Tobias C. Rittweiler <tcr@freebits.de>
+
+	* swank-abcl.lisp (sys::break): Fix typo.
+	(slot-definition-documentation, slot-definition-type)
+	(class-prototype, generic-function-declarations)
+	(specializers-direct-methods, slot-boundp-using-class)
+	(slot-value-using-class): Add IGNORE declarations. Compiling
+	swank-abcl.lisp is now free of warnings.
+	(swank-compile-file): Load the compiled file even though warnings
+	were signalled during compilation.
+
+2009-09-17  Mark Evenson  <evenson@panix.com>
+
+	* swank-abcl.lisp (source-location): Emacs buffers start at 1,
+	whereas CL files start at 0 (Tobias Rittweiler).
+
+2009-09-16  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.lisp (documentation-symbol): Return more readable information.
+
+2009-09-14  Mark Evenson  <evenson@panix.com>
+
+	* swank-abcl.lisp (source-location): Fix typo.
+
+2009-09-12  Mark Evenson  <evenson@panix.com>
+
+	Provided by Alan Ruttenberg.
+
+	* swank-abcl.lisp (source-location): Make edit definition work.
+
+	* swank-abcl.lisp (arglist): Now works with generic functions.
+
+
+2009-09-08  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-loader.lisp (lisp-version-string): Include "-ics" for
+	version with extended charsets.  Suggested by Scott L. Burson.
+
+2009-09-03  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (slime-net-close): set-process-query-on-exit-flag
+	doesn't exist in XEmacs.
+	(slime-make-net-buffer): For now, disable querying here.
+	Could also close the socket before killing the buffer.
+	(slime-buffer-processes): Deleted.
+
+2009-09-02  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-lispworks.lisp (replace-strings-with-symbols): New function for
+	recursively interning and replacing strings in a list.
+	(arglist): Replace all strings in arglists with symbols.
+
+	* slime.el (slime-net-close): Do not query for process killing
+	confirmation before killing a connection buffer.
+	(slime-buffer-processes): New function for listing processes
+	associated with a buffer.
+
+2009-08-31  Helmut Eller  <heller@common-lisp.net>
+
+	Don't advice ccl::break-loop.
+	Should not be necessary as we can now use ccl:*break-hook*.
+
+	* swank-ccl.lisp ([advice] ccl::break-loop): Deleted.
+
+2009-08-31  Helmut Eller  <heller@common-lisp.net>
+
+	Keep note overlays in a global variable.
+	That's simpler and cheaper than scanning all buffers.
+
+	* slime.el (slime-note-overlays): New variable.
+	(slime-make-note-overlay, slime-remove-old-overlays): Use it.
+
+2009-08-27  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-remove-old-overlays): delete notes at the very beginning
+	of the buffer too. Thanks to Nick Levine.
+
+2009-08-22  Helmut Eller  <heller@common-lisp.net>
+
+	Speed up symbol completion.
+
+	* swank.lisp (all-completions): Don't call unparse-symbol
+	while matching.  That gets very slow in CCL's CCL package.
+	Just use symbol-name and compare with char-equal.
+	(prefix-match-p): Use char-equal.
+
+2009-08-21  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (slime-transcript-start-hook)
+	(slime-transcript-stop-hook): New hooks.
+	(slime-eval-with-transcript): Use them.
+	(slime-eval-with-transcript-cont): Deleted.
+
+2009-08-19  Mark Evenson  <evenson@panix.com>
+
+	* swank-abcl.lisp: Accommodate the new Java/Lisp stack frame
+	abstraction in the upcoming abcl-0.16. (based on code from Tobias
+	Rittweiler).
+
+2009-08-18  Mark Evenson  <evenson@panix.com>
+
+	Add multithreading code for abcl-0.16. (Tobias Rittweiler)
+
+	* swank-abcl.lisp: A multithread implementation taking advantage
+	of the new synchronization primitives in abcl-0.16.
+
+	Restore working with abcl-0.15.
+
+	* swank-abcl.lisp: Remove the warm initialization code for
+	SWANK:COMPILER-CONDITION, as it is no longer needed for the
+	current release of ABCL.
+
+2009-08-16  StanisBaw Halik <sthalik@test123.ltd.pl>
+
+	* swank.lisp (init-global-stream-redirection): Continue even if
+	streams are already redirected.  Useful for restarting Swank with
+	M-x slime when a REPL is already present.  Will most likeley
+	mess up the input stream in multi threaded setups, tho.
+
+2009-08-15  Helmut Eller  <heller@common-lisp.net>
+
+	XEmacs fixes.
+
+	* slime.el (slime-editing-keys): Use (kbd "C-M-.") because XEmacs
+	translates [?\C-\M-.] to C-M-n.
+	(next-single-char-property-change)
+	(previous-single-char-property-change): Use
+	next-single-property-change because next-char-property-change gets
+	embarrisingly slow in XEmacs in font-locked buffers.
+	It never felt that slow in Emacs 20 though.
+
+2009-08-15  Helmut Eller  <heller@common-lisp.net>
+
+	* swank-ccl.lisp (definition-name): Special case methods.
+
+	* slime.el (slime-choose-overlay-region): Don't return zero length
+	regions for :eof.
+	(slime-show-buffer-position): The second argument to
+	display-buffer means something completely different in
+	XEmacs. Don't use it.
+	(slime-severity-face): Handle :redefinition.
+	(slime-temporarily-highlight-note): Use a timer instead of the
+	post-command-hook.
+
+2009-08-13  Stas Boukarev  <stassats@gmail.com>
+
+	* slime.el (slime-auto-select-connection, slime-auto-connect):
+	Turn them into customizable variables.
+
+2009-08-11  Tobias C. Rittweiler  <tcr@freebits.de>
+
+	* swank-sbcl.lisp (swank-compile-string): Make sure that it
+	returns NIL on compilation failure.
+
+2009-08-10  Helmut Eller  <heller@common-lisp.net>
+
+	* slime.el (slime-insert-note-group): Factored out from
+	slime-insert-compilation-log.
+	(slime-goto-location-position): Can't use goto-line.
+
+2009-08-10  Helmut Eller  <heller@common-lisp.net>
+	Separate context info from compiler message text.
+
+	* swank-backend.lisp (compiler-condition): Add a new slot
+	:source-context.  Remove :short-message.
+	* swank-cmucl.lisp, swank-sbcl.lisp, swank-scl.lisp,
+	swank-openmcl.lisp, swank-ccl.lisp: Update callers.
+	* swank.lisp (make-compiler-note): Use source-context slot.
+	* slime.el (slime-note.source-context): New.
+	(slime-insert-compilation-log): Use it.
+	(slime-note.short-message): Deleted.
+
+2009-08-10  Helmut Eller  <heller@common-lisp.net>
+
+	Don't add linebreaks for one-line messages.
+
+	(slime-insert-block): New function.
+	(slime-insert-compilation-log): Use it.
+	(slime-indent-rigidly): Use insert-before-markers, otherwise point
+	ends up at before a bunch of inserted spaces.
+
+2009-08-10  Helmut Eller  <heller@common-lisp.net>
+
+	Various compilation related changes.
+
+	* slime.el (slime-show-note-counts): Don't show 0 values.
+	(slime-severity<): New function.
+	(slime-maybe-show-compilation-log): Always create the log buffer
+	but display it only if the compilation failed.
+	(slime-insert-compilation-log): Disable the stupidly inefficient
+	font-lock-after-change-function.
+	(slime-canonicalized-location-to-string): Use relative filenames.
+	(slime-goto-location-buffer): Disable warnings about symlinks.
+
+2009-08-09  Tobias C. Rittweiler  <tcr@freebits.de>
+
+	Make C-x ` work again.
+
+	M-n and C-x ` are now very similiar; but the former operates
+	relative to point in the source buffer, while the latter works
+	relative to the compilation log.
+
+	* slime.el (slime-insert-compilation-log): No do set
+	`compilation-skip-to-next-location'.
+
+2009-08-09  Tobias C. Rittweiler  <tcr@freebits.de>
+
+	M-n/M-p in .lisp buffers do not show the note in the minibuffer
+	anymore if a compilation log is displayed to the user.
+
+	In the compilation log, sort and group the notes by line/column
+	number.
+
+	* slime.el (slime-insert-compilation-log): Sort the notes by their
+	line/column numbers; group notes of same location and display them
+	as one entry.
+	(slime-compilation-loc): Removed.
+	(slime-canonicalized-location),
+	(slime-canonicalized-location-to-string): Extracted from
+	`slime-compilation-loc'.
+	(slime-group-and-sort-notes): Does the sorting/grouping.
+	(slime-show-note): Do not show note in minibuffer if compilation
+	log is displayed to the user.
+
+2009-08-09  Stas Boukarev  <stassats@gmail.com>
+
+	* swank.asd (asdf:perform): don't call `swank-loader:init' with
+	:setup nil, because it doesn't get contribs compiled, and some other
+	configuration steps are omitted.
+
+	* slime.el (slime-profile-by-substring): new function for profiling
+	functions by matching a substring.
+
+	* swank.lisp (profile-by-substring): ditto.
+
+2009-08-08  Tobias C. Rittweiler  <tcr@freebits.de>
+
+	M-n / M-p in a .lisp buffer now also jump to the respective note
+	in the compilation-log buffer if one is currently displayed to the
+	user.
+
+	* slime.el (slime-remove-old-overlays): Simplified.
+	(slime-insert-compilation-log): Add a note-overlay for each note
+	so we can find the right one when user uses M-n/M-p in .lisp
+	buffer.
+	(slime-goto-note-in-compilation-log): New.
+	(slime-make-note-overlay): Extracted from
+	`slime-create-note-overlay'.
+	(slime-next-note, slime-previous-note): Simplified.
+	(slime-show-note): Goto note in compilation-log if available.
+	(slime-note-overlay-p): Call overlay property `slime-note', not
+	just `slime'.
+	(slime-find-note): Likewise; also returns the overlay if found.
+	(slime-show-buffer-position): Optionally recenter position to the
+	top of the window.
+
+2009-08-04  Stas Boukarev  <stassats@gmail.com>
+
+	* swank-sbcl.lisp (signal-compiler-condition): read
+	sb-kernel:redefinition-warning only if it exists.
+	Some older SBCLs don't have it (particularly included in the
+	stable Debian).
+
+2009-08-02  Tobias C. Rittweiler  <tcr@freebits.de>
+
+	* swank-backend.lisp (severity [type]): Allow :redefinition.
+
+	* swank-sbcl.lisp (signal-compiler-condition): Tag redefinitions.
+
+	* slime.el (slime-maybe-show-compilation-log): Do not show
+	compilation log if each note describes just a redefinition.
+	(slime-insert-compilation-log): Insert notes indented by 2
+	spaces. Insert some more newlines so the buffer appears more
+	structured.
+	(slime-show-note-counts): Add :redefinition to ecase.
+	(slime-redefinition-note-p): New.
+	(slime-severity-label): Was unused. Adapted to be usable.
+
+2009-07-30  Stas Boukarev  <stassats@gmail.com>
+
+	* doc/slime.texi (Setting up pathname translations): add that it is
+	in the `slime-tramp' contrib.
+
+2009-07-30  Tobias C. Rittweiler  <tcr@freebits.de>
+
+	* swank-clisp.lisp: Clisp 2.48 experimentally supports threads. So
+	add infrastructure to use threads in Clisp's swank backend. We do
+	not make it the default, because it's not prime time yet. There
+	are still problems with GC, weak-pointers, and thread objects.
+
 2009-07-28  Stas Boukarev  <stassats@gmail.com>
 
 	* doc/slime.texi (slime-selector): mention t and c keys.

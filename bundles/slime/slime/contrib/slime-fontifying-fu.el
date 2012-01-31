@@ -1,17 +1,28 @@
-;;; slime-fontifying-fu.el --- Additional fontification tweaks.
-;;
-;; Author:  Tobias C. Rittweiler <tcr@freebits.de>
-;;
-;; License: GNU GPL (same license as Emacs)
-;;
 
+(define-slime-contrib slime-fontifying-fu
+  "Additional fontification tweaks:
+Fontify WITH-FOO, DO-FOO, DEFINE-FOO like standard macros.
+Fontify CHECK-FOO like CHECK-TYPE."
+  (:authors "Tobias C. Rittweiler <tcr@freebits.de>")
+  (:license "GPL")
+  (:on-load
+   (font-lock-add-keywords
+    'lisp-mode slime-additional-font-lock-keywords)
+   (when slime-highlight-suppressed-forms
+     (slime-activate-font-lock-magic)))
+  (:on-unload
+   ;; FIXME: remove `slime-search-suppressed-forms', and remove the
+   ;; extend-region hook.
+   (font-lock-remove-keywords 
+    'lisp-mode slime-additional-font-lock-keywords)))
 
 ;;; Fontify WITH-FOO, DO-FOO, and DEFINE-FOO like standard macros.
 ;;; Fontify CHECK-FOO like CHECK-TYPE.
 (defvar slime-additional-font-lock-keywords
- '(("(\\(\\(\\s_\\|\\w\\)*:\\(define-\\|do-\\|with-\\)\\(\\s_\\|\\w\\)*\\)" 1 font-lock-keyword-face) 
+ '(("(\\(\\(\\s_\\|\\w\\)*:\\(define-\\|do-\\|with-\\|without-\\)\\(\\s_\\|\\w\\)*\\)" 1 font-lock-keyword-face) 
    ("(\\(\\(define-\\|do-\\|with-\\)\\(\\s_\\|\\w\\)*\\)" 1 font-lock-keyword-face)
-   ("(\\(check-\\(\\s_\\|\\w\\)*\\)" 1 font-lock-warning-face)))
+   ("(\\(check-\\(\\s_\\|\\w\\)*\\)" 1 font-lock-warning-face)
+   ("(\\(assert-\\(\\s_\\|\\w\\)*\\)" 1 font-lock-warning-face)))
 
 
 ;;;; Specially fontify forms suppressed by a reader conditional.
@@ -43,16 +54,14 @@
           (when (<= (point) limit)
             (if (or (and (eq char ?+) (not val))
                     (and (eq char ?-) val))
-                (progn
+                ;; If `slime-extend-region-for-font-lock' did not
+                ;; fully extend the region, the assertion below may
+                ;; fail. This should only happen on XEmacs and older
+                ;; versions of GNU Emacs.
+                (ignore-errors
                   (forward-sexp) (backward-sexp)
                   ;; Try to suppress as far as possible.
-                  (ignore-errors (slime-forward-sexp))
-                  ;; There was an `ignore-errors' form around all this
-                  ;; because the following assertion was triggered
-                  ;; regularly (resulting in the "non-deterministic"
-                  ;; behaviour mentioned in the comment further below.)
-                  ;; With extending the region properly, this assertion
-                  ;; would truly mean a bug now.
+                  (slime-forward-sexp)
                   (assert (<= (point) limit))
                   (let ((md (match-data nil slime-search-suppressed-forms-match-data)))
                     (setf (first md) start)
@@ -69,23 +78,22 @@
       (while (and (eq result 'retry) (<= (point) limit))
         (condition-case condition
             (setq result (slime-search-suppressed-forms-internal limit))
-          (end-of-file                      ; e.g. #+(
+          (end-of-file                        ; e.g. #+(
            (setq result nil)) 
           ;; We found a reader conditional we couldn't process for
           ;; some reason; however, there may still be other reader
           ;; conditionals before `limit'.
-          (invalid-read-syntax              ; e.g. #+#.foo
+          (invalid-read-syntax                ; e.g. #+#.foo
            (setq result 'retry))
-          (scan-error                       ; e.g. #+nil (foo ...
+          (scan-error                         ; e.g. #+nil (foo ...
            (setq result 'retry)) 
-          (slime-unknown-feature-expression ; e.g. #+(foo)
+          (slime-incorrect-feature-expression ; e.g. #+(not foo bar)
+           (setq result 'retry))
+          (slime-unknown-feature-expression   ; e.g. #+(foo)
            (setq result 'retry)) 
           (error
            (setq result nil)
-           ;; If this reports `(cl-assertion-failed (<= (point) limit))',
-           ;; the actual culprit is `slime-extend-region-for-font-lock'
-           ;; which did not extend the region enough in this case.
-           (slime-bug 
+           (slime-display-warning
             (concat "Caught error during fontification while searching for forms\n"
                     "that are suppressed by reader-conditionals. The error was: %S.")
             condition))))
@@ -139,7 +147,7 @@ position, or nil."
             (slime-compute-region-for-font-lock font-lock-beg font-lock-end))
           changedp)
       (error
-       (slime-bug 
+       (slime-display-warning
         (concat "Caught error when trying to extend the region for fontification.\n"
                 "The error was: %S\n"
                 "Further: font-lock-beg=%d, font-lock-end=%d.")
@@ -171,9 +179,10 @@ position, or nil."
     (goto-char beg)
     (inline (slime-beginning-of-tlf))
     (assert (not (plusp (nth 0 (slime-current-parser-state)))))
-    (setq beg (let ((pt (point))) 
-                (or (slime-search-directly-preceding-reader-conditional)
-                    pt)))
+    (setq beg (let ((pt (point)))
+                (cond ((> (- beg pt) 20000) beg)
+                      ((slime-search-directly-preceding-reader-conditional))
+                      (t pt))))
     (goto-char end)
     (while (search-backward-regexp slime-reader-conditionals-regexp beg t)
       (setq end (max end (save-excursion 
@@ -182,7 +191,6 @@ position, or nil."
     (values (or (/= beg orig-beg) (/= end orig-end)) beg end)))
 
 
-
 (defun slime-activate-font-lock-magic ()
   (if (featurep 'xemacs)
       (let ((pattern `((slime-search-suppressed-forms
@@ -198,24 +206,17 @@ position, or nil."
       (add-hook 'lisp-mode-hook 
                 #'(lambda () 
                     (add-hook 'font-lock-extend-region-functions
-                              'slime-extend-region-for-font-lock t t)))
-      ))
+                              'slime-extend-region-for-font-lock t t)))))
 
-
-(defun slime-fontifying-fu-init ()
-  (font-lock-add-keywords
-   'lisp-mode slime-additional-font-lock-keywords)
-  (when slime-highlight-suppressed-forms
-    (slime-activate-font-lock-magic)))
-
-(defun slime-fontifying-fu-unload ()
-  (font-lock-remove-keywords 
-   'lisp-mode slime-additional-font-lock-keywords)
-  ;;; FIXME: remove `slime-search-suppressed-forms', and remove the
-  ;;; extend-region hook.
-  )
-
-
+(let ((byte-compile-warnings '())) 
+  (mapc #'byte-compile
+        '(slime-extend-region-for-font-lock
+          slime-compute-region-for-font-lock
+          slime-search-directly-preceding-reader-conditional
+          slime-search-suppressed-forms
+          slime-beginning-of-tlf)))
+
+;;; Tests
 (def-slime-test font-lock-magic (buffer-content)
     "Some testing for the font-lock-magic. *YES* should be
     highlighted as a suppressed form, *NO* should not."
@@ -300,6 +301,17 @@ position, or nil."
    *YES*
 \)
 
+*NO*")
+      ("#-(not) *YES* *NO*
+
+*NO*
+
+#+(not) *NO* *NO*
+
+*NO*
+
+#+(not a b c) *NO* *NO*
+
 *NO*"))
   (slime-check-top-level)
   (with-temp-buffer
@@ -338,11 +350,3 @@ position, or nil."
       (setq lisp-mode-hook hook))))
 
 (provide 'slime-fontifying-fu)
-
-(let ((byte-compile-warnings '())) 
-  (mapc #'byte-compile
-        '(slime-extend-region-for-font-lock
-          slime-compute-region-for-font-lock
-          slime-search-directly-preceding-reader-conditional
-          slime-search-suppressed-forms
-          slime-beginning-of-tlf)))

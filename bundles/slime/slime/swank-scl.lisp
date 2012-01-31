@@ -26,9 +26,10 @@
 (defimplementation preferred-communication-style ()
   :spawn)
 
-(defimplementation create-socket (host port)
+(defimplementation create-socket (host port &key backlog)
   (let ((addr (resolve-hostname host)))
-    (ext:create-inet-listener port :stream :host addr :reuse-address t)))
+    (ext:create-inet-listener port :stream :host addr :reuse-address t
+                              :backlog (or backend 5))))
 
 (defimplementation local-port (socket)
   (nth-value 1 (ext::get-socket-host-and-port (socket-fd socket))))
@@ -38,8 +39,7 @@
 
 (defimplementation accept-connection (socket 
                                       &key external-format buffering timeout)
-  (let ((external-format (or external-format :default))
-        (buffering (or buffering :full))
+  (let ((buffering (or buffering :full))
         (fd (socket-fd socket)))
       (loop
        (let ((ready (sys:wait-until-fd-usable fd :input timeout)))
@@ -47,7 +47,11 @@
            (error "Timeout accepting connection on socket: ~S~%" socket)))
        (let ((new-fd (ignore-errors (ext:accept-tcp-connection fd))))
          (when new-fd
-           (return (make-socket-io-stream new-fd external-format buffering)))))))
+           (return (make-socket-io-stream new-fd external-format 
+                                          (ecase buffering
+                                            ((t) :full)
+                                            ((nil) :none)
+                                            (:line :line)))))))))
 
 (defimplementation set-stream-timeout (stream timeout)
   (check-type timeout (or null real))
@@ -82,15 +86,22 @@
 
 (defun make-socket-io-stream (fd external-format buffering)
   "Create a new input/output fd-stream for 'fd."
-  (let* ((stream (sys:make-fd-stream fd :input t :output t
-                                     :element-type 'base-char
-                                     :buffering buffering
-                                     :external-format external-format)))
-    ;; Ignore character conversion errors.  Without this the communication
-    ;; channel is prone to lockup if a character conversion error occurs.
-    (setf (lisp::character-conversion-stream-input-error-value stream) #\?)
-    (setf (lisp::character-conversion-stream-output-error-value stream) #\?)
-    stream))
+  (cond ((not external-format)
+         (sys:make-fd-stream fd :input t :output t :buffering buffering
+                             :element-type '(unsigned-byte 8)))
+        (t
+         (let* ((stream (sys:make-fd-stream fd :input t :output t
+                                            :element-type 'base-char
+                                            :buffering buffering
+                                            :external-format external-format)))
+           ;; Ignore character conversion errors.  Without this the
+           ;; communication channel is prone to lockup if a character
+           ;; conversion error occurs.
+           (setf (lisp::character-conversion-stream-input-error-value stream)
+                 #\?)
+           (setf (lisp::character-conversion-stream-output-error-value stream)
+                 #\?)
+           stream))))
 
 
 ;;;; Stream handling
@@ -439,7 +450,9 @@
       (funcall function))))
 
 (defimplementation swank-compile-file (input-file output-file 
-                                       load-p external-format)
+                                       load-p external-format
+                                       &key policy)
+  (declare (ignore policy))
   (with-compilation-hooks ()
     (let ((*buffer-name* nil)
           (ext:*ignore-extra-close-parentheses* nil))
@@ -488,8 +501,8 @@
            'compiler-condition
            :original-condition condition
            :severity (severity-for-emacs condition)
-           :short-message (brief-compiler-message-for-emacs condition)
-           :message (long-compiler-message-for-emacs condition context)
+           :message (brief-compiler-message-for-emacs condition)
+           :source-context (compiler-error-context context)
            :location (if (read-error-p condition)
                          (read-error-location condition)
                          (compiler-note-location context)))))
@@ -512,15 +525,16 @@
   the error-context redundant."
   (princ-to-string condition))
 
-(defun long-compiler-message-for-emacs (condition error-context)
+(defun compiler-error-context (error-context)
   "Describe a compiler error for Emacs including context information."
   (declare (type (or c::compiler-error-context null) error-context))
   (multiple-value-bind (enclosing source)
       (if error-context
           (values (c::compiler-error-context-enclosing-source error-context)
                   (c::compiler-error-context-source error-context)))
-    (format nil "~@[--> ~{~<~%--> ~1:;~A~> ~}~%~]~@[~{==>~%~A~^~%~}~]~A"
-            enclosing source condition)))
+    (if (and enclosing source)
+        (format nil "~@[--> ~{~<~%--> ~1:;~A~> ~}~%~]~@[~{==>~%~A~^~%~}~]"
+                enclosing source))))
 
 (defun read-error-location (condition)
   (let* ((finfo (car (c::source-info-current-file c::*source-info*)))
@@ -1314,9 +1328,6 @@ Signal an error if no constructor can be found."
 (defimplementation pathname-to-filename (pathname)
   (ext:unix-namestring pathname nil))
 
-(defimplementation call-without-interrupts (fn)
-  (funcall fn))
-
 (defimplementation getpid ()
   (unix:unix-getpid))
 
@@ -2028,8 +2039,3 @@ The `symbol-value' of each element is a type tag.")
 ;;; Not implemented in SCL.
 (defimplementation make-weak-key-hash-table (&rest args)
   (apply #'make-hash-table :weak-p t args))
-
-;; Local Variables:
-;; pbook-heading-regexp:    "^;;;\\(;+\\)"
-;; pbook-commentary-regexp: "^;;;\\($\\|[^;]\\)"
-;; End:
