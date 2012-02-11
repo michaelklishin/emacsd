@@ -3,4 +3,4 @@
 # --
 def self.${1:name}
   $0
-end # self.$1
+end
