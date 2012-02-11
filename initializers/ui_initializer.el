@@ -19,12 +19,10 @@
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 (if (fboundp 'tool-bar-mode) (tool-bar-mode -1))
 
-;; I love yellow cursor on black background
-(set-cursor-color "yellow")
-
 ;; set dark background
 (set-background-color "Black")
 (set-foreground-color "White")
+(set-cursor-color "yellow")
 
 ;; yes, use transient mark mode
 (transient-mark-mode t)
@@ -36,8 +34,8 @@
 (require 'color-theme)
 
 ;; load color theme
-(load "themes/vibrant-ink")
-(color-theme-vibrant-ink)
+(load "themes/twilight")
+(color-theme-twilight)
 
 ;;
 ;; Full-screen mode on Cocoa
