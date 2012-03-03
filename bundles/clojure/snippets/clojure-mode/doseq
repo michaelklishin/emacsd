@@ -1,0 +1,4 @@
+# name: (doseq ...)
+# --
+(doseq [${1:local} ${2:coll}]
+  $0)
