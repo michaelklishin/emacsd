@@ -1,15 +1,22 @@
+;;; slime-fuzzy.el --- fuzzy symbol completion
+;;
+;; Authors: Brian Downing <bdowning@lavos.net>
+;;          Tobias C. Rittweiler <tcr@freebits.de>
+;;          Attila Lendvai <attila.lendvai@gmail.com>
+;;          and others
+;;
+;; License: GNU GPL (same license as Emacs)
+;;
+;;; Installation
+;;
+;; Add this to your .emacs: 
+;;
+;;   (add-to-list 'load-path "<directory-of-this-file>")
+;;   (add-hook 'slime-load-hook (lambda () (require 'slime-fuzzy)))
+;;
 
-(define-slime-contrib slime-fuzzy
-  "Fuzzy symbol completion."
-  (:authors "Brian Downing <bdowning@lavos.net>"
-            "Tobias C. Rittweiler <tcr@freebits.de>"
-            "Attila Lendvai <attila.lendvai@gmail.com>")
-  (:license "GPL")
-  (:swank-dependencies swank-fuzzy)
-  (:on-load
-   (define-key slime-mode-map "\C-c\M-i" 'slime-fuzzy-complete-symbol)
-   (when (featurep 'slime-repl)
-     (define-key slime-repl-mode-map "\C-c\M-i" 'slime-fuzzy-complete-symbol))))
+
+;;; Code
 
 (defcustom slime-fuzzy-completion-in-place t
   "When non-NIL the fuzzy symbol completion is done in place as
@@ -34,7 +41,6 @@ comint-dynamic-complete-as-filename to complete file names"
   :group 'slime-mode
   :type 'boolean)
 
-
 (defvar slime-fuzzy-target-buffer nil
   "The buffer that is the target of the completion activities.")
 (defvar slime-fuzzy-saved-window-configuration nil
@@ -72,33 +78,46 @@ buffer. This is used to hightlight the text.")
 ;;;;;;; slime-target-buffer-fuzzy-completions-mode
 ;; NOTE: this mode has to be able to override key mappings in slime-mode
 
+;; FIXME: clean this up
+
+(defun mimic-key-bindings (from-keymap to-keymap bindings-or-operation operation)
+  "Iterate on BINDINGS-OR-OPERATION. If an element is a symbol then
+try to look it up (as an operation) in FROM-KEYMAP. Non symbols are taken
+as default key bindings when none to be mimiced was found in FROM-KEYMAP.
+Set the resulting list of keys in TO-KEYMAP to OPERATION."
+  (let ((mimic-keys nil)
+        (direct-keys nil))
+    (dolist (key-or-operation bindings-or-operation)
+      (if (symbolp key-or-operation)
+          (setf mimic-keys (append mimic-keys (where-is-internal key-or-operation from-keymap nil t)))
+          (push key-or-operation direct-keys)))
+    (dolist (key (or mimic-keys direct-keys))
+      (define-key to-keymap key operation))))
+
 (defvar slime-target-buffer-fuzzy-completions-map
-  (let ((map (make-sparse-keymap)))
-    (flet ((def (keys command)
-             (unless (listp keys)
-               (setq keys (list keys)))
-             (dolist (key keys)
-               (define-key map key command))))
-      (def `([remap keyboard-quit]
-             ,(kbd "C-g"))
-           'slime-fuzzy-abort)
-      (def `([remap slime-fuzzy-indent-and-complete-symbol]
-             [remap slime-indent-and-complete-symbol]
-             ,(kbd "<tab>"))
-           'slime-fuzzy-select-or-update-completions)
-      (def `([remap previous-line]
-             ,(kbd "<up>"))
-           'slime-fuzzy-prev)
-      (def `([remap next-line]
-             ,(kbd "<down>"))
-           'slime-fuzzy-next)
-      (def `([remap isearch-forward]
-             ,(kbd "C-s"))
-           'slime-fuzzy-continue-isearch-in-fuzzy-buffer)
+  (let* ((map (make-sparse-keymap)))
+    (flet ((remap (keys to)
+             (mimic-key-bindings global-map map keys to)))
+      
+      (remap (list 'keyboard-quit (kbd "C-g")) 'slime-fuzzy-abort)
+
+      (remap (list 'slime-fuzzy-indent-and-complete-symbol
+                   'slime-indent-and-complete-symbol
+                   (kbd "<tab>"))
+             'slime-fuzzy-select-or-update-completions)
+      (remap (list 'previous-line (kbd "<up>")) 'slime-fuzzy-prev)
+      (remap (list 'next-line (kbd "<down>")) 'slime-fuzzy-next)
+      (remap (list 'isearch-forward (kbd "C-s"))
+             (lambda ()
+               (interactive)
+               (select-window (get-buffer-window (slime-get-fuzzy-buffer)))
+               (call-interactively 'isearch-forward)))
+
       ;; some unconditional direct bindings
-      (def (list (kbd "<return>") (kbd "RET") (kbd "<SPC>") "(" ")" "[" "]")
-           'slime-fuzzy-select-and-process-event-in-target-buffer))
-    map)
+      (dolist (key (list (kbd "<return>") (kbd "RET") (kbd "<SPC>") "(" ")" "[" "]"))
+        (define-key map key 'slime-fuzzy-select-and-process-event-in-target-buffer)))
+    map
+    )
   "Keymap for slime-target-buffer-fuzzy-completions-mode. This will override the key
 bindings in the target buffer temporarily during completion.")
 
@@ -110,10 +129,6 @@ bindings in the target buffer temporarily during completion.")
                      (eq a 'slime-fuzzy-target-buffer-completions-mode))
                    :key #'car))
 
-(defun slime-fuzzy-continue-isearch-in-fuzzy-buffer ()
-  (interactive)
-  (select-window (get-buffer-window (slime-get-fuzzy-buffer)))
-  (call-interactively 'isearch-forward))
 
 (define-minor-mode slime-fuzzy-target-buffer-completions-mode
   "This minor mode is intented to override key bindings during fuzzy
@@ -170,40 +185,36 @@ Complete listing of keybindings with *Fuzzy Completions*:
 
 \\<slime-fuzzy-completions-map>\
 \\{slime-fuzzy-completions-map}"
-  (use-local-map slime-fuzzy-completions-map)
-  (set (make-local-variable 'slime-fuzzy-current-completion-overlay)
-       (make-overlay (point) (point) nil t nil)))
+  (use-local-map slime-fuzzy-completions-map))
 
 (defvar slime-fuzzy-completions-map  
-  (let ((map (make-sparse-keymap)))
-    (flet ((def (keys command)
-             (unless (listp keys)
-               (setq keys (list keys)))
-             (dolist (key keys)
-               (define-key map key command))))
-      (def `([remap keyboard-quit]
-             "q"
-             ,(kbd "C-g"))
-           'slime-fuzzy-abort)
-      (def `([remap previous-line]
-             "p"
-             "\M-p"
-             ,(kbd "<up>"))
-           'slime-fuzzy-prev)
-      (def `([remap next-line]
-             "n"
-             "\M-n"
-             ,(kbd "<down>"))
-           'slime-fuzzy-next)
-      (def "\d" 'scroll-down)
-      (def `([remap slime-fuzzy-indent-and-complete-symbol]
-             [remap slime-indent-and-complete-symbol]
-             ,(kbd "<tab>"))
-           'slime-fuzzy-select)
-      (def (kbd "<mouse-2>") 'slime-fuzzy-select/mouse)
-      (def `(,(kbd "RET")
-             ,(kbd "<SPC>"))
-           'slime-fuzzy-select))
+  (let* ((map (make-sparse-keymap)))
+    (flet ((remap (keys to)
+             (mimic-key-bindings global-map map keys to)))
+      (remap (list 'keyboard-quit (kbd "C-g")) 'slime-fuzzy-abort)
+      (define-key map "q" 'slime-fuzzy-abort)
+    
+      (remap (list 'previous-line (kbd "<up>")) 'slime-fuzzy-prev)
+      (remap (list 'next-line (kbd "<down>")) 'slime-fuzzy-next)
+    
+      (define-key map "n" 'slime-fuzzy-next)
+      (define-key map "\M-n" 'slime-fuzzy-next)
+    
+      (define-key map "p" 'slime-fuzzy-prev)
+      (define-key map "\M-p" 'slime-fuzzy-prev)
+    
+      (define-key map "\d" 'scroll-down)
+
+      (remap (list 'slime-fuzzy-indent-and-complete-symbol
+                   'slime-indent-and-complete-symbol
+                   (kbd "<tab>"))
+             'slime-fuzzy-select)
+
+      (define-key map (kbd "<mouse-2>") 'slime-fuzzy-select/mouse))
+    
+      (define-key map (kbd "RET") 'slime-fuzzy-select)
+      (define-key map (kbd "<SPC>") 'slime-fuzzy-select)
+    
     map)
   "Keymap for slime-fuzzy-completions-mode when in the completion buffer.")
 
@@ -215,6 +226,7 @@ Complete listing of keybindings with *Fuzzy Completions*:
 		  (string prefix))))
     (slime-eval `(swank:fuzzy-completions ,prefix 
                                           ,(or default-package
+                                               (slime-find-buffer-package)
                                                (slime-current-package))
                   :limit ,slime-fuzzy-completion-limit
                   :time-limit-in-msec ,slime-fuzzy-completion-time-limit-in-msec))))
@@ -246,12 +258,10 @@ most recently enclosed macro or function."
   "Fuzzily completes the abbreviation at point into a symbol."
   (interactive)
   (when (save-excursion (re-search-backward "\"[^ \t\n]+\\=" nil t))
-    (return-from slime-fuzzy-complete-symbol
-      ;; don't add space after completion
-      (let ((comint-completion-addsuffix '("/" . "")))
-        (if slime-when-complete-filename-expand
-            (comint-replace-by-expanded-filename)
-            (comint-dynamic-complete-as-filename)))))
+    (return-from slime-fuzzy-complete-symbol 
+      (if slime-when-complete-filename-expand
+          (comint-replace-by-expanded-filename)
+        (comint-dynamic-complete-as-filename))))
   (let* ((end (move-marker (make-marker) (slime-symbol-end-pos)))
          (beg (move-marker (make-marker) (slime-symbol-start-pos)))
          (prefix (buffer-substring-no-properties beg end)))
@@ -328,11 +338,6 @@ so that the new text is present."
       (setq slime-fuzzy-text text)
       (goto-char slime-fuzzy-end)))))
 
-(defun slime-minibuffer-p (buffer)
-  (if (featurep 'xemacs)
-      (eq buffer (window-buffer (minibuffer-window)))
-      (minibufferp buffer)))
-
 (defun slime-fuzzy-choices-buffer (completions interrupted-p start end)
   "Creates (if neccessary), populates, and pops up the *Fuzzy
 Completions* buffer with the completions from `completions' and
@@ -340,8 +345,7 @@ the completion slot in the current buffer bounded by `start' and
 `end'.  This saves the window configuration before popping the
 buffer so that it can possibly be restored when the user is
 done."
-  (let ((new-completion-buffer (not slime-fuzzy-target-buffer))
-        (connection (slime-connection)))
+  (let ((new-completion-buffer (not slime-fuzzy-target-buffer)))
     (when new-completion-buffer
       (setq slime-fuzzy-saved-window-configuration
             (current-window-configuration)))
@@ -354,7 +358,6 @@ done."
     (setq slime-fuzzy-text slime-fuzzy-original-text)
     (slime-fuzzy-fill-completions-buffer completions interrupted-p)
     (pop-to-buffer (slime-get-fuzzy-buffer))
-    (setq slime-buffer-connection connection)
     (when new-completion-buffer
       ;; Hook to nullify window-config restoration if the user changes
       ;; the window configuration himself.
@@ -362,11 +365,10 @@ done."
         (add-hook 'window-configuration-change-hook
                   'slime-fuzzy-window-configuration-change))
       (slime-add-local-hook 'kill-buffer-hook 'slime-fuzzy-abort)
-      (set (make-local-variable 'cursor-type) nil)
       (setq buffer-quit-function 'slime-fuzzy-abort)) ; M-Esc Esc
     (when slime-fuzzy-completion-in-place
       ;; switch back to the original buffer
-      (if (slime-minibuffer-p slime-fuzzy-target-buffer)
+      (if (minibufferp slime-fuzzy-target-buffer)
           (select-window (minibuffer-window))
           (switch-to-buffer-other-window slime-fuzzy-target-buffer)))))
 
@@ -455,6 +457,7 @@ the completion that point is on in the completions buffer."
 buffer."
   (interactive)
   (with-current-buffer (slime-get-fuzzy-buffer)
+    (slime-fuzzy-dehighlight-current-completion)
     (let ((point (next-single-char-property-change (point) 'completion nil slime-fuzzy-last)))
       (set-window-point (get-buffer-window (current-buffer)) point)
       (goto-char point))
@@ -465,19 +468,24 @@ buffer."
 completions buffer."
   (interactive)
   (with-current-buffer (slime-get-fuzzy-buffer)
+    (slime-fuzzy-dehighlight-current-completion)
     (let ((point (previous-single-char-property-change (point) 'completion nil slime-fuzzy-first)))
       (set-window-point (get-buffer-window (current-buffer)) point)
       (goto-char point))
     (slime-fuzzy-highlight-current-completion)))
 
+(defun slime-fuzzy-dehighlight-current-completion ()
+  "Restores the original face for the current completion."
+  (when slime-fuzzy-current-completion-overlay
+    (overlay-put slime-fuzzy-current-completion-overlay 'face 'nil)))
+
 (defun slime-fuzzy-highlight-current-completion ()
   "Highlights the current completion, so that the user can see it on the screen."
   (let ((pos (point)))
-    (when (overlayp slime-fuzzy-current-completion-overlay)
-      (move-overlay slime-fuzzy-current-completion-overlay
-                    (point) (1- (search-forward " ")))
-      (overlay-put slime-fuzzy-current-completion-overlay
-                   'face 'secondary-selection))
+    (setq slime-fuzzy-current-completion-overlay 
+          (make-overlay (point) (1- (search-forward " "))
+                        (current-buffer) t nil))
+    (overlay-put slime-fuzzy-current-completion-overlay 'face 'secondary-selection)
     (goto-char pos)))
 
 (defun slime-fuzzy-abort ()
@@ -557,9 +565,7 @@ configuration alone."
         ;; completions buffer and let something else fill it in.
         (pop-to-buffer (slime-get-fuzzy-buffer))
         (bury-buffer))
-    (if (slime-minibuffer-p slime-fuzzy-target-buffer)
-        (select-window (minibuffer-window))
-        (pop-to-buffer slime-fuzzy-target-buffer))
+    (pop-to-buffer slime-fuzzy-target-buffer)
     (goto-char slime-fuzzy-end)
     (setq slime-fuzzy-target-buffer nil)
     (remove-hook 'window-configuration-change-hook
@@ -581,5 +587,16 @@ nullified."
   "Called on window-configuration-change-hook.  Since the window
 configuration was changed, we nullify our saved configuration."
   (setq slime-fuzzy-saved-window-configuration nil))
+
+;;; Initialization 
+
+(defun slime-fuzzy-init ()
+  (slime-fuzzy-bind-keys))
+
+(defun slime-fuzzy-bind-keys ()
+  (define-key slime-mode-map "\C-c\M-i" 'slime-fuzzy-complete-symbol)
+  (define-key slime-repl-mode-map "\C-c\M-i" 'slime-fuzzy-complete-symbol))
+
+(slime-require :swank-fuzzy)
 
 (provide 'slime-fuzzy)

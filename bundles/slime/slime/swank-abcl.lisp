@@ -12,10 +12,17 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (require :collect) ;just so that it doesn't spoil the flying letters
-  (require :pprint)
-  (assert (>= (read-from-string (subseq (lisp-implementation-version) 0 4))
-              0.22)
-          () "This file needs ABCL version 0.22 or newer"))
+  (require :pprint))
+
+(defun sys::break (&optional (format-control "BREAK called") 
+                   &rest format-arguments)
+  (let ((*saved-backtrace* (backtrace-as-list-ignoring-swank-calls)))
+    (with-simple-restart (continue "Return from BREAK.")
+      (invoke-debugger
+       (sys::%make-condition 'simple-condition
+                             (list :format-control format-control
+                                   :format-arguments format-arguments))))
+    nil))
 
 (defimplementation make-output-stream (write-string)
   (ext:make-slime-output-stream write-string))
@@ -35,30 +42,17 @@
 
 ;(defun class-finalized-p (class) t)
 
-(defun slot-definition-documentation (slot)
-  (declare (ignore slot))
-  #+nil (documentation slot 't))
-
-(defun slot-definition-type (slot)
-  (declare (ignore slot))
-  t)
-
-(defun class-prototype (class)
-  (declare (ignore class))
-  nil)
-
-(defun generic-function-declarations (gf)
-  (declare (ignore gf))
-  nil)
-
-(defun specializer-direct-methods (spec)
-  (mop::class-direct-methods spec))
+(defun slot-definition-documentation (slot) #+nil (documentation slot 't))
+(defun slot-definition-type (slot) t)
+(defun class-prototype (class))
+(defun generic-function-declarations (gf))
+(defun specializer-direct-methods (spec) (mop::class-direct-methods spec))
 
 (defun slot-definition-name (slot)
   (mop::%slot-definition-name slot))
 
 (defun class-slots (class)
-  (mop:class-slots class))
+  (mop::%class-slots class))
 
 (defun method-generic-function (method)
   (mop::%method-generic-function method))
@@ -67,11 +61,9 @@
   (mop::%method-function method))
 
 (defun slot-boundp-using-class (class object slotdef)
-  (declare (ignore class))
   (system::slot-boundp object (slot-definition-name slotdef)))
 
 (defun slot-value-using-class (class object slotdef)
-  (declare (ignore class))
   (system::slot-value object (slot-definition-name slotdef)))
 
 (import-to-swank-mop
@@ -80,8 +72,6 @@
    standard-slot-definition ;;dummy
    cl:method
    cl:standard-class
-   #+#.(swank-backend:with-symbol 'compute-applicable-methods-using-classes 'mop)
-   mop::compute-applicable-methods-using-classes
    ;; standard-class readers
    mop::class-default-initargs
    mop::class-direct-default-initargs
@@ -129,9 +119,9 @@
 
 
 (defimplementation preferred-communication-style ()
-  :spawn)
+  nil)
 
-(defimplementation create-socket (host port &key backlog)
+(defimplementation create-socket (host port)
   (ext:make-server-socket port))
 
 (defimplementation local-port (socket)
@@ -144,48 +134,7 @@
                                       &key external-format buffering timeout)
   (declare (ignore buffering timeout))
   (ext:get-socket-stream (ext:socket-accept socket)
-                         :element-type (if external-format 
-                                           'character 
-                                           '(unsigned-byte 8))
-                         :external-format (or external-format :default)))
-
-;;;; UTF8 
-
-;; faster please!
-(defimplementation string-to-utf8 (s)
-  (jbytes-to-octets
-   (java:jcall 
-    (java:jmethod "java.lang.String" "getBytes" "java.lang.String")
-    s
-    "UTF8")))
-
-(defimplementation utf8-to-string (u)
-  (java:jnew 
-   (java:jconstructor "org.armedbear.lisp.SimpleString" 
-                      "java.lang.String")
-   (java:jnew (java:jconstructor "java.lang.String" "[B" "java.lang.String")
-              (octets-to-jbytes u)
-              "UTF8")))
-
-(defun octets-to-jbytes (octets)
-  (declare (type octets (simple-array (unsigned-byte 8) (*))))
-  (let* ((len (length octets))
-         (bytes (java:jnew-array "byte" len)))
-    (loop for byte across octets
-          for i from 0
-          do (java:jstatic (java:jmethod "java.lang.reflect.Array"  "setByte" 
-                            "java.lang.Object" "int" "byte")
-                           "java.lang.relect.Array"
-                           bytes i byte))
-    bytes))
-
-(defun jbytes-to-octets (jbytes)
-  (let* ((len (java:jarray-length jbytes))
-         (octets (make-array len :element-type '(unsigned-byte 8))))
-    (loop for i from 0 below len
-          for jbyte = (java:jarray-ref jbytes i)
-          do (setf (aref octets i) jbyte))
-    octets))
+                         :external-format external-format))
 
 ;;;; External formats
 
@@ -205,6 +154,9 @@
                   *external-format-to-coding-system*)))
 
 ;;;; Unix signals
+
+(defimplementation call-without-interrupts (fn)
+  (funcall fn))
 
 (defimplementation getpid ()
   (handler-case 
@@ -252,16 +204,8 @@
 
 (defimplementation arglist (fun)
   (cond ((symbolp fun)
-          (multiple-value-bind (arglist present) 
-              (sys::arglist fun)
-            (when (and (not present)
-                       (fboundp fun)
-                       (typep (symbol-function fun) 'standard-generic-function))
-              (setq arglist
-                    (mop::generic-function-lambda-list (symbol-function fun))
-                    present
-                    t))
-            (if present arglist :not-available)))
+         (multiple-value-bind (arglist present) (sys::arglist fun)
+           (if present arglist :not-available)))
         (t :not-available)))
 
 (defimplementation function-name (function)
@@ -280,27 +224,14 @@
       (maybe-push
        :variable (when (boundp symbol)
                    (doc 'variable)))
-      (when (fboundp symbol)
-        (maybe-push
-         (cond ((macro-function symbol)     :macro)
-	       ((special-operator-p symbol) :special-operator)
-	       ((typep (fdefinition symbol) 'generic-function)
-                :generic-function)
-	       (t :function))
-         (doc 'function)))
+      (maybe-push
+       :function (if (fboundp symbol)
+                     (doc 'function)))
       (maybe-push
        :class (if (find-class symbol nil)
                   (doc 'class)))
       result)))
 
-(defimplementation describe-definition (symbol namespace)
-  (ecase namespace
-    (:variable 
-     (describe symbol))
-    ((:function :generic-function)
-     (describe (symbol-function symbol)))
-    (:class
-     (describe (find-class symbol)))))
 
 (defimplementation describe-definition (symbol namespace)
   (ecase namespace
@@ -311,54 +242,39 @@
     (:class
      (describe (find-class symbol)))))
 
-
+(defimplementation describe-definition (symbol namespace)
+  (ecase namespace
+    (:variable 
+     (describe symbol))
+    ((:function :generic-function)
+     (describe (symbol-function symbol)))
+    (:class
+     (describe (find-class symbol)))))
+
+
 ;;;; Debugger
-
-;; Copied from swank-sbcl.lisp.
-;;
-;; Notice that *INVOKE-DEBUGGER-HOOK* is tried before *DEBUGGER-HOOK*,
-;; so we have to make sure that the latter gets run when it was
-;; established locally by a user (i.e. changed meanwhile.)
-(defun make-invoke-debugger-hook (hook)
-  (lambda (condition old-hook)
-    (if *debugger-hook*
-        (funcall *debugger-hook* condition old-hook)
-        (funcall hook condition old-hook))))
-
-(defimplementation call-with-debugger-hook (hook fun)
-  (let ((*debugger-hook* hook)
-        (sys::*invoke-debugger-hook* (make-invoke-debugger-hook hook)))
-    (funcall fun)))
-
-(defimplementation install-debugger-globally (function)
-  (setq *debugger-hook* function)
-  (setq sys::*invoke-debugger-hook* (make-invoke-debugger-hook function)))
 
 (defvar *sldb-topframe*)
 
+(defun backtrace-as-list-ignoring-swank-calls ()
+  (let ((list (ext:backtrace-as-list)))
+    (subseq list (1+ (or (position (intern "SWANK-DEBUGGER-HOOK" 'swank) list :key 'car) -1)))))
+
 (defimplementation call-with-debugging-environment (debugger-loop-fn)
-  (let* ((magic-token (intern "SWANK-DEBUGGER-HOOK" 'swank))
-         (*sldb-topframe* 
-          (second (member magic-token (sys:backtrace)
-                          :key (lambda (frame) 
-                                 (first (sys:frame-to-list frame)))))))
+  (let ((*sldb-topframe* (car (backtrace-as-list-ignoring-swank-calls)) #+nil (excl::int-newest-frame)))
     (funcall debugger-loop-fn)))
 
-(defun backtrace (start end)
-  "A backtrace without initial SWANK frames."
-  (let ((backtrace (sys:backtrace)))
-    (subseq (or (member *sldb-topframe* backtrace) backtrace)
-            start end)))
-
 (defun nth-frame (index)
-  (nth index (backtrace 0 nil)))
+  (nth index (backtrace-as-list-ignoring-swank-calls)))
 
 (defimplementation compute-backtrace (start end)
   (let ((end (or end most-positive-fixnum)))
-    (backtrace start end)))
+    (loop for f in (subseq (backtrace-as-list-ignoring-swank-calls) start end)
+          collect f)))
 
 (defimplementation print-frame (frame stream)
-  (write-string (sys:frame-to-string frame)
+  (write-string (string-trim '(#\space #\newline)
+                             (prin1-to-string frame))
                 stream))
 
 (defimplementation frame-locals (index)
@@ -369,9 +285,8 @@
   (disassemble (debugger:frame-function (nth-frame index))))
 
 (defimplementation frame-source-location (index)
-  (let ((frame (nth-frame index)))
-    (or (source-location (nth-frame index))
-        `(:error ,(format nil "No source for frame: ~a" frame)))))
+  (list :error (format nil "Cannot find source for frame: ~A"
+                       (nth-frame index))))
 
 #+nil
 (defimplementation eval-in-frame (form frame-number)
@@ -402,8 +317,6 @@
 
 (in-package :swank-backend)
 
-(defvar *abcl-signaled-conditions*)
-
 (defun handle-compiler-warning (condition)
   (let ((loc (when (and jvm::*compile-file-pathname* 
                         system::*source-position*)
@@ -430,10 +343,11 @@
                                  (list :file (namestring *compile-filename*))
                                  (list :position 1)))))))))
 
+(defvar *abcl-signaled-conditions*)
+
 (defimplementation swank-compile-file (input-file output-file
-                                       load-p external-format
-                                       &key policy)
-  (declare (ignore external-format policy))
+                                       load-p external-format)
+  (declare (ignore external-format))
   (let ((jvm::*resignal-compiler-warnings* t)
         (*abcl-signaled-conditions* nil))
     (handler-bind ((warning #'handle-compiler-warning))
@@ -442,8 +356,9 @@
         (multiple-value-bind (fn warn fail) 
             (compile-file input-file :output-file output-file)
           (values fn warn
-                  (and fn load-p
-                       (not (load fn)))))))))
+                  (or fail 
+                      (and load-p 
+                           (not (load fn))))))))))
 
 (defimplementation swank-compile-string (string &key buffer position filename
                                          policy)
@@ -482,118 +397,20 @@
 
 (defimplementation find-definitions (symbol)
   (fspec-definition-locations symbol))
+
 |#
 
-(defgeneric source-location (object))
-
-(defmethod source-location ((symbol symbol))
+(defun source-location (symbol)
   (when (pathnamep (ext:source-pathname symbol))
-    (let ((pos (ext:source-file-position symbol)))
-      `(:location
+    `(((,symbol)
+       (:location 
         (:file ,(namestring (ext:source-pathname symbol)))
-        ,(if pos
-             (list :position (1+ pos))
-             (list :function-name (string symbol)))
-        (:align t)))))
+        (:position ,(or (ext:source-file-position symbol) 1))
+        (:align t))))))
 
-(defmethod source-location ((frame sys::java-stack-frame))
-  (destructuring-bind (&key class method file line) (sys:frame-to-list frame)
-    (declare (ignore method))
-    (let ((file (or (find-file-in-path file *source-path*)
-                    (let ((f (format nil "~{~a/~}~a"
-                                     (butlast (split-string class "\\."))
-                                     file)))
-                      (find-file-in-path f *source-path*)))))
-      (and file 
-           `(:location ,file (:line ,line) ())))))
-
-(defmethod source-location ((frame sys::lisp-stack-frame))
-  (destructuring-bind (operator &rest args) (sys:frame-to-list frame)
-    (declare (ignore args))
-    (etypecase operator
-      (function (source-location operator))
-      (list nil)
-      (symbol (source-location operator)))))
-
-(defmethod source-location ((fun function))
-  (let ((name (function-name fun)))
-    (and name (source-location name))))
-
-(defun system-property (name)
-  (java:jstatic "getProperty" "java.lang.System" name))
-
-(defun pathname-parent (pathname)
-  (make-pathname :directory (butlast (pathname-directory pathname))))
-
-(defun pathname-absolute-p (pathname)
-  (eq (car (pathname-directory pathname)) ':absolute))
-
-(defun split-string (string regexp)
-  (coerce 
-   (java:jcall (java:jmethod "java.lang.String" "split" "java.lang.String")
-               string regexp)
-   'list))
-
-(defun path-separator ()
-  (java:jfield "java.io.File" "pathSeparator"))
-
-(defun search-path-property (prop-name)
-  (let ((string (system-property prop-name)))
-    (and string
-         (remove nil 
-                 (mapcar #'truename
-                         (split-string string (path-separator)))))))
-
-(defun jdk-source-path ()
-  (let* ((jre-home (truename (system-property "java.home")))
-         (src-zip (merge-pathnames "src.zip" (pathname-parent jre-home)))
-         (truename (probe-file src-zip)))
-    (and truename (list truename))))
-
-(defun class-path ()
-  (append (search-path-property "java.class.path")
-          (search-path-property "sun.boot.class.path")))
-
-(defvar *source-path*
-  (append (search-path-property "user.dir")
-          (jdk-source-path)
-          ;;(list (truename "/scratch/abcl/src"))
-          )
-  "List of directories to search for source files.")
-
-(defun zipfile-contains-p (zipfile-name entry-name)
-  (let ((zipfile (java:jnew (java:jconstructor "java.util.zip.ZipFile" 
-                                               "java.lang.String")
-                            zipfile-name)))
-    (java:jcall
-     (java:jmethod "java.util.zip.ZipFile" "getEntry" "java.lang.String")
-     zipfile entry-name)))
-
-;; (find-file-in-path "java/lang/String.java" *source-path*)
-;; (find-file-in-path "Lisp.java" *source-path*)
-
-;; Try fo find FILENAME in PATH.  If found, return a file spec as
-;; needed by Emacs.  We also look in zip files.
-(defun find-file-in-path (filename path)
-  (labels ((try (dir)
-             (cond ((not (pathname-type dir))
-                    (let ((f (probe-file (merge-pathnames filename dir))))
-                      (and f `(:file ,(namestring f)))))
-                   ((equal (pathname-type dir) "zip")
-                    (try-zip dir))
-                   (t (error "strange path element: ~s" path))))
-           (try-zip (zip)
-             (let* ((zipfile-name (namestring (truename zip))))
-               (and (zipfile-contains-p zipfile-name filename)
-                    `(:dir ,zipfile-name  ,filename)))))
-    (cond ((pathname-absolute-p filename) (probe-file filename))
-          (t
-           (loop for dir in path
-                 if (try dir) return it)))))
 
 (defimplementation find-definitions (symbol)
-  (let ((srcloc (source-location symbol)))
-    (and srcloc `((,symbol ,srcloc)))))
+  (source-location symbol))
 
 #| 
 Uncomment this if you have patched xref.lisp, as in 
@@ -623,143 +440,138 @@ part of *sysdep-pathnames* in swank.loader.lisp.
 |#
 
 ;;;; Inspecting
-(defmethod emacs-inspect ((o t))
-  (let ((parts (sys:inspected-parts o)))
-    `("The object is of type " ,(symbol-name (type-of o)) "." (:newline)
-      ,@(if parts
-           (loop :for (label . value) :in parts
-              :appending (label-value-line label value))
-            (list "No inspectable parts, dumping output of CL:DESCRIBE:" '(:newline) 
-                  (with-output-to-string (desc) (describe o desc)))))))
 
 (defmethod emacs-inspect ((slot mop::slot-definition))
-  `("Name: " (:value ,(mop::%slot-definition-name slot))
-             (:newline)
-             "Documentation:" (:newline)
-             ,@(when (slot-definition-documentation slot)
-                     `((:value ,(slot-definition-documentation slot)) (:newline)))
-             "Initialization:" (:newline)
-             "  Args: " (:value ,(mop::%slot-definition-initargs slot)) (:newline)
-             "  Form: "  ,(if (mop::%slot-definition-initfunction slot)
-                              `(:value ,(mop::%slot-definition-initform slot))
-                              "#<unspecified>") (:newline)
-                              "  Function: " (:value ,(mop::%slot-definition-initfunction slot))
-                              (:newline)))
+          `("Name: " (:value ,(mop::%slot-definition-name slot))
+            (:newline)
+            "Documentation:" (:newline)
+            ,@(when (slot-definition-documentation slot)
+                `((:value ,(slot-definition-documentation slot)) (:newline)))
+            "Initialization:" (:newline)
+            "  Args: " (:value ,(mop::%slot-definition-initargs slot)) (:newline)
+            "  Form: "  ,(if (mop::%slot-definition-initfunction slot)
+                             `(:value ,(mop::%slot-definition-initform slot))
+                             "#<unspecified>") (:newline)
+            "  Function: " (:value ,(mop::%slot-definition-initfunction slot))
+            (:newline)))
 
 (defmethod emacs-inspect ((f function))
-  `(,@(when (function-name f)
-            `("Name: " 
-              ,(princ-to-string (function-name f)) (:newline)))
-      ,@(multiple-value-bind (args present) 
-                             (sys::arglist f)
-                             (when present `("Argument list: " ,(princ-to-string args) (:newline))))
-      (:newline)
-      #+nil,@(when (documentation f t)
-                   `("Documentation:" (:newline) ,(documentation f t) (:newline)))
-      ,@(when (function-lambda-expression f)
-              `("Lambda expression:" 
-                (:newline) ,(princ-to-string
-                             (function-lambda-expression f)) (:newline)))))
+          `(,@(when (function-name f)
+                    `("Name: " 
+                      ,(princ-to-string (function-name f)) (:newline)))
+            ,@(multiple-value-bind (args present) 
+                                   (sys::arglist f)
+                                   (when present `("Argument list: " ,(princ-to-string args) (:newline))))
+            (:newline)
+            #+nil,@(when (documentation f t)
+                         `("Documentation:" (:newline) ,(documentation f t) (:newline)))
+            ,@(when (function-lambda-expression f)
+                    `("Lambda expression:" 
+                      (:newline) ,(princ-to-string (function-lambda-expression f)) (:newline)))))
 
-;;; Although by convention toString() is supposed to be a
-;;; non-computationally expensive operation this isn't always the
-;;; case, so make its computation a user interaction.
-(defparameter *to-string-hashtable* (make-hash-table))
-(defmethod emacs-inspect ((o java:java-object))
-    (let ((to-string (lambda ()
-                      (handler-case
-                          (setf (gethash o *to-string-hashtable*)
-                                         (java:jcall "toString" o))
-                        (t (e)
-                          (setf (gethash o *to-string-hashtable*)
-                                         (format nil "Could not invoke toString(): ~A"
-                                                 e)))))))
-      (append
-       (if (gethash o *to-string-hashtable*)
-           (label-value-line "toString()" (gethash o *to-string-hashtable*))
-           `((:action "[compute toString()]" ,to-string) (:newline)))
-       (loop :for (label . value) :in (sys:inspected-parts o)
-          :appending (label-value-line label value)))))
+#|
+
+(defmethod emacs-inspect ((o t))
+  (let* ((class (class-of o))
+         (slots (mop::class-slots class)))
+            (mapcar (lambda (slot)
+                      (let ((name (mop::slot-definition-name slot)))
+                        (cons (princ-to-string name)
+                              (slot-value o name))))
+                    slots)))
+|#
 
 ;;;; Multithreading
 
-(defimplementation spawn (fn &key name)
-  (threads:make-thread (lambda () (funcall fn)) :name name))
+(defimplementation startup-multiprocessing ()
+  #+nil(mp:start-scheduler))
 
-(defvar *thread-plists* (make-hash-table) ; should be a weak table
+(defimplementation spawn (fn &key name)
+  (ext:make-thread (lambda () (funcall fn)) :name name))
+
+(defvar *thread-props-lock* (ext:make-thread-lock))
+
+(defvar *thread-props* (make-hash-table) ; should be a weak table
   "A hashtable mapping threads to a plist.")
 
 (defvar *thread-id-counter* 0)
 
 (defimplementation thread-id (thread)
-  (threads:synchronized-on *thread-plists*
-    (or (getf (gethash thread *thread-plists*) 'id)
-        (setf (getf (gethash thread *thread-plists*) 'id)
+  (ext:with-thread-lock (*thread-props-lock*)
+    (or (getf (gethash thread *thread-props*) 'id)
+        (setf (getf (gethash thread *thread-props*) 'id)
               (incf *thread-id-counter*)))))
 
 (defimplementation find-thread (id)
   (find id (all-threads) 
         :key (lambda (thread)
-               (getf (gethash thread *thread-plists*) 'id))))
+                (getf (gethash thread *thread-props*) 'id))))
 
 (defimplementation thread-name (thread)
-  (threads:thread-name thread))
+  (ext:thread-name thread))
 
 (defimplementation thread-status (thread)
-  (format nil "Thread is ~:[dead~;alive~]" (threads:thread-alive-p thread)))
+  (format nil "Thread is ~:[dead~;alive~]" (ext:thread-alive-p thread)))
 
 (defimplementation make-lock (&key name)
-  (declare (ignore name))
-  (threads:make-thread-lock))
+  (ext:make-thread-lock))
 
 (defimplementation call-with-lock-held (lock function)
-  (threads:with-thread-lock (lock) (funcall function)))
+  (ext:with-thread-lock (lock) (funcall function)))
 
 (defimplementation current-thread ()
-  (threads:current-thread))
+  (ext:current-thread))
 
 (defimplementation all-threads ()
-  (copy-list (threads:mapcar-threads #'identity)))
-
-(defimplementation thread-alive-p (thread)
-  (member thread (all-threads)))
+  (copy-list (ext:mapcar-threads #'identity)))
 
 (defimplementation interrupt-thread (thread fn)
-  (threads:interrupt-thread thread fn)) 
+  (ext:interrupt-thread thread fn))
 
 (defimplementation kill-thread (thread)
-  (threads:destroy-thread thread))
+  (ext:destroy-thread thread))
 
 (defstruct mailbox 
+  (mutex (ext:make-mutex))
   (queue '()))
 
 (defun mailbox (thread)
   "Return THREAD's mailbox."
-  (threads:synchronized-on *thread-plists*
-    (or (getf (gethash thread *thread-plists*) 'mailbox)
-        (setf (getf (gethash thread *thread-plists*) 'mailbox)
+  (ext:with-thread-lock (*thread-props-lock*)
+    (or (getf (gethash thread *thread-props*) 'mailbox)
+        (setf (getf (gethash thread *thread-props*) 'mailbox)
               (make-mailbox)))))
 
-(defimplementation send (thread message)
+(defimplementation send (thread object)
   (let ((mbox (mailbox thread)))
-    (threads:synchronized-on mbox
+    (ext:with-mutex ((mailbox-mutex mbox))
       (setf (mailbox-queue mbox) 
-            (nconc (mailbox-queue mbox) (list message)))
-      (threads:object-notify-all mbox))))
+            (nconc (mailbox-queue mbox) (list message))))))
 
-(defimplementation receive-if (test &optional timeout)
+#+(or)
+(defimplementation receive-if (thread &optional timeout)
   (let* ((mbox (mailbox (current-thread))))
     (assert (or (not timeout) (eq timeout t)))
     (loop
      (check-slime-interrupts)
-     (threads:synchronized-on mbox
+     (ext:with-mutex ((mailbox-mutex mbox))
        (let* ((q (mailbox-queue mbox))
               (tail (member-if test q)))
          (when tail 
            (setf (mailbox-queue mbox) (nconc (ldiff q tail) (cdr tail)))
-           (return (car tail)))
-         (when (eq timeout t) (return (values nil t)))
-         (threads:object-wait mbox 0.3))))))
+           (return (car tail))))
+       (when (eq timeout t) (return (values nil t)))
+       ;;(java:jcall (java:jmethod "java.lang.Object" "wait") 
+       ;;            (mailbox-mutex mbox) 1000)
+       ))))
 
 (defimplementation quit-lisp ()
   (ext:exit))
+
+;; WORKAROUND: call/initialize accessors at load time
+(let ((c (make-condition 'compiler-condition 
+                          :original-condition nil
+                          :severity ':note :message "" :location nil))
+       (slots `(severity message short-message references location)))
+   (dolist (slot slots)
+     (funcall slot c)))

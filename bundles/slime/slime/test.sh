@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Run the SLIME test suite inside screen, saving the results to a file.
 
@@ -69,8 +69,7 @@ trap "rm -r $tmpdir" EXIT	# remove temporary directory on exit
 
 mkdir $tmpdir
 if [ $use_temp_dir == true ] ; then 
-    cp -r $slimedir/*.{el,lisp} ChangeLog $tmpdir 
-    # cp -r $slimedir/contrib $tmpdir 
+    cp -r $slimedir/*.{el,lisp} ChangeLog $slimedir/contrib $tmpdir
 fi
 
 cmd=($emacs -nw -q -no-site-file $batch_mode --no-site-file

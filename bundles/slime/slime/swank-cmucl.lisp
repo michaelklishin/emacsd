@@ -27,7 +27,7 @@
 ;;; `READ-SEQUENCE' with large sequences has problems in 18e. This new
 ;;; definition works better.
 
-#+cmu18
+#-cmu19
 (progn
   (let ((s (find-symbol (string :*enable-package-locked-errors*) :lisp)))
     (when s
@@ -63,21 +63,6 @@
   )
 
 (in-package :swank-backend)
-
-;;; UTF8
-
-(locally (declare (ext:inhibit-warnings 3))
-  (stream:octets-to-string
-   (stream:string-to-octets "compile utf8 transcoder" :external-format :utf-8)
-   :external-format :utf-8))
-
-(defimplementation string-to-utf8 (string)
-  (let ((ef (load-time-value (stream::find-external-format :utf-8) t)))
-    (stream:string-to-octets string :external-format ef)))
-
-(defimplementation utf8-to-string (octets)
-  (let ((ef (load-time-value (stream::find-external-format :utf-8) t)))
-    (stream:octets-to-string octets :external-format ef)))
 
 
 ;;;; TCP server
@@ -92,17 +77,16 @@
   :sigio)
 
 #-(or darwin mips)
-(defimplementation create-socket (host port &key backlog)
+(defimplementation create-socket (host port)
   (let* ((addr (resolve-hostname host))
          (addr (if (not (find-symbol "SOCKET-ERROR" :ext))
                    (ext:htonl addr)
                    addr)))
-    (ext:create-inet-listener port :stream :reuse-address t :host addr
-                              :backlog (or backlog 5))))
+    (ext:create-inet-listener port :stream :reuse-address t :host addr)))
 
 ;; There seems to be a bug in create-inet-listener on Mac/OSX and Irix.
 #+(or darwin mips)
-(defimplementation create-socket (host port &key backlog)
+(defimplementation create-socket (host port)
   (declare (ignore host))
   (ext:create-inet-listener port :stream :reuse-address t))
 
@@ -118,15 +102,12 @@
                                       external-format buffering timeout)
   (declare (ignore timeout))
   (make-socket-io-stream (ext:accept-tcp-connection socket) 
-                         (ecase buffering
-                           ((t) :full)
-                           (:line :line)
-                           ((nil) :none))
-                         external-format))
+                         (or buffering :full)
+                         (or external-format :iso-8859-1)))
 
 ;;;;; Sockets
 
-(defimplementation socket-fd (socket)
+(defun socket-fd (socket)
   "Return the filedescriptor for the socket represented by SOCKET."
   (etypecase socket
     (fixnum socket)
@@ -138,9 +119,11 @@
     (car (ext:host-entry-addr-list hostent))))
 
 (defvar *external-format-to-coding-system*
-  '((:iso-8859-1 "iso-latin-1-unix")
+  '((:iso-8859-1
+     "latin-1" "latin-1-unix" "iso-latin-1-unix"
+     "iso-8859-1" "iso-8859-1-unix")
     #+unicode
-    (:utf-8 "utf-8-unix")))
+    (:utf-8 "utf-8" "utf-8-unix")))
 
 (defimplementation find-external-format (coding-system)
   (car (rassoc-if (lambda (x) (member coding-system x :test #'equal))
@@ -148,36 +131,11 @@
 
 (defun make-socket-io-stream (fd buffering external-format)
   "Create a new input/output fd-stream for FD."
-  (cond (external-format
-         (sys:make-fd-stream fd :input t :output t 
-                             :element-type 'character
-                             :buffering buffering
-                             :external-format external-format))
-        (t
-         (sys:make-fd-stream fd :input t :output t 
-                             :element-type '(unsigned-byte 8)
-                             :buffering buffering))))
-
-(defimplementation make-fd-stream (fd external-format)
-  (make-socket-io-stream fd :full external-format))
-
-(defimplementation dup (fd)
-  (multiple-value-bind (clone error) (unix:unix-dup fd)
-    (unless clone (error "dup failed: ~a" (unix:get-unix-error-msg error)))
-    clone))
-
-(defimplementation command-line-args ()
-  ext:*command-line-strings*)
-
-(defimplementation exec-image (image-file args)
-  (multiple-value-bind (ok error)
-      (unix:unix-execve (car (command-line-args))
-			(list* (car (command-line-args)) 
-                               "-core" image-file
-                               "-noinit"
-                               args))
-    (error "~a" (unix:get-unix-error-msg error))
-    ok))
+  #-unicode(declare (ignore external-format))
+  (sys:make-fd-stream fd :input t :output t :element-type 'base-char
+                      :buffering buffering
+                      #+unicode :external-format 
+                      #+unicode external-format))
 
 ;;;;; Signal-driven I/O
 
@@ -190,10 +148,6 @@
   "List of (key . function) pairs.
 All functions are called on SIGIO, and the key is used for removing
 specific functions.")
-
-(defun reset-sigio-handlers () (setq *sigio-handlers* '()))
-;; All file handlers are invalid afer reload.
-(pushnew 'reset-sigio-handlers ext:*after-save-initializations*)
 
 (defun set-sigio-handler ()
   (sys:enable-interrupt :sigio (lambda (signal code scp)
@@ -426,9 +380,8 @@ NIL if we aren't compiling from a buffer.")
       (funcall function))))
 
 (defimplementation swank-compile-file (input-file output-file
-                                       load-p external-format
-                                       &key policy)
-  (declare (ignore external-format policy))
+                                       load-p external-format)
+  (declare (ignore external-format))
   (clear-xref-info input-file)
   (with-compilation-hooks ()
     (let ((*buffer-name* nil)
@@ -477,8 +430,8 @@ NIL if we aren't compiling from a buffer.")
            'compiler-condition
            :original-condition condition
            :severity (severity-for-emacs condition)
-           :message (compiler-condition-message condition)
-           :source-context (compiler-error-context context)
+           :short-message (brief-compiler-message-for-emacs condition)
+           :message (long-compiler-message-for-emacs condition context)
            :location (if (read-error-p condition)
                          (read-error-location condition)
                          (compiler-note-location context)))))
@@ -494,24 +447,22 @@ NIL if we aren't compiling from a buffer.")
 (defun read-error-p (condition)
   (eq (type-of condition) 'c::compiler-read-error))
 
-(defun compiler-condition-message (condition)
+(defun brief-compiler-message-for-emacs (condition)
   "Briefly describe a compiler error for Emacs.
 When Emacs presents the message it already has the source popped up
 and the source form highlighted. This makes much of the information in
 the error-context redundant."
   (princ-to-string condition))
 
-(defun compiler-error-context (error-context)
-  "Describe context information for Emacs."
+(defun long-compiler-message-for-emacs (condition error-context)
+  "Describe a compiler error for Emacs including context information."
   (declare (type (or c::compiler-error-context null) error-context))
   (multiple-value-bind (enclosing source)
       (if error-context
           (values (c::compiler-error-context-enclosing-source error-context)
                   (c::compiler-error-context-source error-context)))
-    (if (or enclosing source)
-        (format nil "~@[--> ~{~<~%--> ~1:;~A ~>~}~%~]~
-                     ~@[==>~{~&~A~}~]"
-                enclosing source))))
+    (format nil "~@[--> ~{~<~%--> ~1:;~A~> ~}~%~]~@[~{==>~%~A~^~%~}~]~A"
+            enclosing source condition)))
 
 (defun read-error-location (condition)
   (let* ((finfo (car (c::source-info-current-file c::*source-info*)))
@@ -598,7 +549,7 @@ Return a `location' record, or (:error REASON) on failure."
 
 ;;; More types of XREF information were added since 18e:
 ;;;
-#-cmu18
+#+cmu19
 (progn
   (defxref who-macroexpands xref:who-macroexpands)
   ;; XXX
@@ -634,8 +585,8 @@ This is a workaround for a CMUCL bug: XREF records are cumulative."
   (when c:*record-xref-info*
     (let ((filename (truename namestring)))
       (dolist (db (list xref::*who-calls*
-                        #-cmu18 xref::*who-is-called*
-                        #-cmu18 xref::*who-macroexpands*
+                        #+cmu19 xref::*who-is-called*
+                        #+cmu19 xref::*who-macroexpands*
                         xref::*who-references*
                         xref::*who-binds*
                         xref::*who-sets*))
@@ -813,12 +764,11 @@ condition object."
 (defun location-in-file (filename code-location debug-source)
   "Resolve the source location for CODE-LOCATION in FILENAME."
   (let* ((code-date (di:debug-source-created debug-source))
-         (root-number (di:debug-source-root-number debug-source))
          (source-code (get-source-code filename code-date)))
     (with-input-from-string (s source-code)
       (make-location (list :file (unix-truename filename))
                      (list :position (1+ (code-location-stream-position
-                                          code-location s root-number)))
+                                          code-location s)))
                      `(:snippet ,(read-snippet s))))))
 
 (defun location-in-stream (code-location debug-source)
@@ -871,15 +821,14 @@ This is true for functions that were compiled directly from buffers."
 
 ;;;;; Groveling source-code for positions
 
-(defun code-location-stream-position (code-location stream root)
+(defun code-location-stream-position (code-location stream)
   "Return the byte offset of CODE-LOCATION in STREAM.  Extract the
 toplevel-form-number and form-number from CODE-LOCATION and use that
 to find the position of the corresponding form.
 
 Finish with STREAM positioned at the start of the code location."
   (let* ((location (debug::maybe-block-start-location code-location))
-	 (tlf-offset (- (di:code-location-top-level-form-offset location)
-                        root))
+	 (tlf-offset (di:code-location-top-level-form-offset location))
 	 (form-number (di:code-location-form-number location)))
     (let ((pos (form-number-stream-position tlf-offset form-number stream)))
       (file-position stream pos)
@@ -901,7 +850,7 @@ FORM-NUMBER is an index into a source-path table for the TLF."
   "Return the byte offset of CODE-LOCATION in STRING.
 See CODE-LOCATION-STREAM-POSITION."
   (with-input-from-string (s string)
-    (code-location-stream-position code-location s 0)))
+    (code-location-stream-position code-location s)))
 
 
 ;;;; Finding definitions
@@ -919,11 +868,7 @@ See CODE-LOCATION-STREAM-POSITION."
           (compiler-macro-definitions name)
           (source-transform-definitions name)
           (function-info-definitions name)
-          (ir1-translator-definitions name)
-          (template-definitions name)
-          (primitive-definitions name)
-          (vm-support-routine-definitions name)
-          ))
+          (ir1-translator-definitions name)))
 
 ;;;;; Functions, macros, generic functions, methods
 ;;;
@@ -937,16 +882,20 @@ See CODE-LOCATION-STREAM-POSITION."
 regular functions, generic functions, methods and macros.
 NAME can any valid function name (e.g, (setf car))."
   (let ((macro?    (and (symbolp name) (macro-function name)))
+        (special?  (and (symbolp name) (special-operator-p name)))
         (function? (and (ext:valid-function-name-p name)
                         (ext:info :function :definition name)
                         (if (symbolp name) (fboundp name) t))))
     (cond (macro? 
            (list `((defmacro ,name)
                    ,(function-location (macro-function name)))))
+          (special?
+           (list `((:special-operator ,name) 
+                   (:error ,(format nil "Special operator: ~S" name)))))
           (function?
            (let ((function (fdefinition name)))
              (if (genericp function)
-                 (gf-definitions name function)
+                 (generic-function-definitions name function)
                  (list (list `(function ,name)
                              (function-location function)))))))))
 
@@ -1041,16 +990,18 @@ NAME can any valid function name (e.g, (setf car))."
 (defun struct-constructor (dd)
   "Return a constructor function from a defstruct definition.
 Signal an error if no constructor can be found."
-  (let* ((constructor (or (kernel:dd-default-constructor dd)
-                          (car (kernel::dd-constructors dd))))
-         (sym (if (consp constructor) (car constructor) constructor)))
-    (unless sym
-      (error "Cannot find structure's constructor: ~S" (kernel::dd-name dd)))
-    (coerce sym 'function)))
+  (let ((constructor (or (kernel:dd-default-constructor dd)
+                         (car (kernel::dd-constructors dd)))))
+    (when (or (null constructor)
+              (and (consp constructor) (null (car constructor))))
+      (error "Cannot find structure's constructor: ~S"
+             (kernel::dd-name dd)))
+    (coerce (if (consp constructor) (first constructor) constructor)
+            'function)))
 
 ;;;;;; Generic functions and methods
 
-(defun gf-definitions (name function)
+(defun generic-function-definitions (name function)
   "Return the definitions of a generic function and its methods."
   (cons (list `(defgeneric ,name) (gf-location function))
         (gf-method-definitions function)))
@@ -1075,19 +1026,10 @@ Signal an error if no constructor can be found."
          (qualifiers (pcl:method-qualifiers method)))
     `(method ,name ,@qualifiers ,(pcl::unparse-specializers specializers))))
 
+;; XXX maybe special case setters/getters
 (defun method-location (method)
-  (typecase method
-    (pcl::standard-accessor-method
-     (definition-source-location
-         (cond ((pcl::definition-source method) 
-                method)
-               (t
-                (pcl::slot-definition-class
-                 (pcl::accessor-method-slot-definition method))))
-         (pcl::accessor-method-slot-name method)))
-    (t
-     (function-location (or (pcl::method-fast-function method)
-                            (pcl:method-function method))))))
+  (function-location (or (pcl::method-fast-function method)
+                         (pcl:method-function method))))
 
 (defun genericp (fn)
   (typep fn 'generic-function))
@@ -1228,15 +1170,15 @@ Signal an error if no constructor can be found."
            (null `(:error ,(format nil "Cannot resolve: ~S" source)))))))))
 
 (defun setf-definitions (name)
-  (let ((f (or (ext:info :setf :inverse name)
-               (ext:info :setf :expander name)
-               (and (symbolp name)
-                    (fboundp `(setf ,name))
-                    (fdefinition `(setf ,name))))))
-    (if f
-        `(((setf ,name) ,(function-location (cond ((functionp  f) f)
-                                                  ((macro-function f))
-                                                  ((fdefinition f)))))))))
+  (let ((function (or (ext:info :setf :inverse name)
+                      (ext:info :setf :expander name)
+                      (and (symbolp name)
+                           (fboundp `(setf ,name))
+                           (fdefinition `(setf ,name))))))
+    (if function
+        (list (list `(setf ,name) 
+                    (function-location (coerce function 'function)))))))
+
 
 (defun variable-location (symbol)
   (multiple-value-bind (location foundp)
@@ -1282,8 +1224,7 @@ Signal an error if no constructor can be found."
                 (maybe-make-definition (c::function-info-ir2-convert info)
                                        'c::ir2-convert name)
                 (loop for template in (c::function-info-templates info)
-                      collect (list `(,(type-of template)
-                                       ,(c::template-name template))
+                      collect (list `(c::vop ,(c::template-name template))
                                     (function-location 
                                      (c::vop-info-generator-function 
                                       template))))))))
@@ -1291,31 +1232,6 @@ Signal an error if no constructor can be found."
 (defun ir1-translator-definitions (name)
   (maybe-make-definition (ext:info :function :ir1-convert name)
                          'c:def-ir1-translator name))
-
-(defun template-definitions (name)
-  (let* ((templates (c::backend-template-names c::*backend*))
-         (template (gethash name templates)))
-    (etypecase template
-      (null)
-      (c::vop-info
-       (maybe-make-definition (c::vop-info-generator-function template)
-                              (type-of template) name)))))
-
-;; for cases like: (%primitive NAME ...)
-(defun primitive-definitions (name)
-  (let ((csym (find-symbol (string name) 'c)))
-    (and csym
-         (not (eq csym name))
-         (template-definitions csym))))
-
-(defun vm-support-routine-definitions (name)
-  (let ((sr (c::backend-support-routines c::*backend*))
-        (name (find-symbol (string name) 'c)))
-    (and name
-         (slot-exists-p sr name)
-         (maybe-make-definition (slot-value sr name)
-                                (find-symbol (string 'vm-support-routine) 'c)
-                                name))))
 
 
 ;;;; Documentation.
@@ -1560,6 +1476,9 @@ A utility for debugging DEBUG-FUNCTION-ARGLIST."
 (defimplementation default-directory ()
   (namestring (ext:default-directory)))
 
+(defimplementation call-without-interrupts (fn)
+  (sys:without-interrupts (funcall fn)))
+
 (defimplementation getpid ()
   (unix:unix-getpid))
 
@@ -1617,9 +1536,7 @@ A utility for debugging DEBUG-FUNCTION-ARGLIST."
         (ignore-errors (princ e stream))))))
 
 (defimplementation frame-source-location (index)
-  (let ((frame (nth-frame index)))
-    (cond ((foreign-frame-p frame) (foreign-frame-source-location frame))
-          ((code-location-source-location (di:frame-code-location frame))))))
+  (code-location-source-location (di:frame-code-location (nth-frame index))))
 
 (defimplementation eval-in-frame (form index)
   (di:eval-in-frame (nth-frame index) form))
@@ -1653,17 +1570,6 @@ A utility for debugging DEBUG-FUNCTION-ARGLIST."
 
 (defimplementation frame-catch-tags (index)
   (mapcar #'car (di:frame-catches (nth-frame index))))
-
-(defimplementation frame-package (frame-number)
-  (let* ((frame (nth-frame frame-number))
-         (dbg-fun (di:frame-debug-function frame)))
-    (typecase dbg-fun
-      (di::compiled-debug-function
-       (let* ((comp (di::compiled-debug-function-component dbg-fun))
-              (dbg-info (kernel:%code-debug-info comp)))
-         (typecase dbg-info
-           (c::compiled-debug-info
-            (find-package (c::compiled-debug-info-package dbg-info)))))))))
 
 (defimplementation return-from-frame (index form)
   (let ((sym (find-symbol (string 'find-debug-tag-for-frame)
@@ -1902,29 +1808,8 @@ Try to create a informative message."
                        (sys:sap-int
                         (sys:sap+ (kernel:code-instructions component) pc)))))
              (values ip pc)))
-          (di::interpreted-debug-function -1)
-          (di::bogus-debug-function
-           #-x86
-           (let* ((real (di::frame-real-frame (di::frame-up frame)))
-                  (fp (di::frame-pointer real)))
-             ;;#+(or)
-             (progn
-               (format *debug-io* "Frame-real-frame = ~S~%" real)
-               (format *debug-io* "fp = ~S~%" fp)
-               (format *debug-io* "lra = ~S~%"
-                       (kernel:stack-ref fp vm::lra-save-offset)))
-             (values 
-              (sys:int-sap
-               (- (kernel:get-lisp-obj-address
-                   (kernel:stack-ref fp vm::lra-save-offset))
-                  (- (ash vm:function-code-offset vm:word-shift)
-                     vm:function-pointer-type)))
-              0))
-           #+x86
-           (let ((fp (di::frame-pointer (di:frame-up frame))))
-             (multiple-value-bind (ra ofp) (di::x86-call-context fp)
-               (declare (ignore ofp))
-               (values ra 0))))))))
+          ((or di::bogus-debug-function di::interpreted-debug-function)
+           -1)))))
 
 (defun frame-registers (frame)
   "Return the lisp registers CSP, CFP, IP, OCFP, LRA for FRAME-NUMBER."
@@ -1941,19 +1826,16 @@ Try to create a informative message."
                          (integer p)
                          (sys:system-area-pointer (sys:sap-int p)))))
       (apply #'format t "~
-~8X  Stack Pointer
-~8X  Frame Pointer
-~8X  Instruction Pointer
-~8X  Saved Frame Pointer
-~8X  Saved Instruction Pointer~%" (mapcar #'fixnum 
+CSP  =  ~X
+CFP  =  ~X
+IP   =  ~X
+OCFP =  ~X
+LRA  =  ~X~%" (mapcar #'fixnum 
                       (multiple-value-list (frame-registers frame)))))))
 
-(defvar *gdb-program-name*
-  (ext:enumerate-search-list (p "path:gdb")
-    (when (probe-file p)
-      (return p))))
 
 (defimplementation disassemble-frame (frame-number)
+  "Return a string with the disassembly of frames code."
   (print-frame-registers frame-number)
   (terpri)
   (let* ((frame (di::frame-real-frame (nth-frame frame-number)))
@@ -1966,110 +1848,7 @@ Try to create a informative message."
              (disassemble fun)
              (disassem:disassemble-code-component component))))
       (di::bogus-debug-function
-       (cond ((probe-file *gdb-program-name*)
-              (let ((ip (sys:sap-int (frame-ip frame))))
-                (princ (gdb-command "disas 0x~x" ip))))
-             (t
-              (format t "~%[Disassembling bogus frames not implemented]")))))))
-
-(defmacro with-temporary-file ((stream filename) &body body)
-  `(call/temporary-file (lambda (,stream ,filename) . ,body)))
-  
-(defun call/temporary-file (fun)
-  (let ((name (system::pick-temporary-file-name)))
-    (unwind-protect
-         (with-open-file (stream name :direction :output :if-exists :supersede)
-           (funcall fun stream name))
-      (delete-file name))))
-
-(defun gdb-command (format-string &rest args)
-  (let ((str (gdb-exec (format nil
-                               "interpreter-exec mi2 \"attach ~d\"~%~
-                                interpreter-exec console ~s~%detach"
-                               (getpid)
-                               (apply #'format nil format-string args))))
-        (prompt (format nil
-                        #-(and darwin x86) "~%^done~%(gdb) ~%"
-                        #+(and darwin x86)
-"~%^done,thread-id=\"1\"~%(gdb) ~%")))
-    (subseq str (+ (or (search prompt str) 0) (length prompt)))))
-
-(defun gdb-exec (cmd)
-  (with-temporary-file (file filename)
-    (write-string cmd file)
-    (force-output file)
-    (let* ((output (make-string-output-stream))
-           ;; gdb on sparc needs to know the executable to find the
-           ;; symbols.  Without this, gdb can't disassemble anything.
-           ;; NOTE: We assume that the first entry in
-           ;; lisp::*cmucl-lib* is the bin directory where lisp is
-           ;; located.  If this is not true, we'll have to do
-           ;; something better to find the lisp executable.
-           (lisp-path
-            #+sparc
-             (list
-              (namestring
-               (probe-file
-                (merge-pathnames "lisp" (car (lisp::parse-unix-search-path
-                                              lisp::*cmucl-lib*))))))
-             #-sparc
-             nil)
-           (proc (ext:run-program *gdb-program-name*
-                                  `(,@lisp-path "-batch" "-x" ,filename)
-                                  :wait t
-                                  :output output)))
-      (assert (eq (ext:process-status proc) :exited))
-      (assert (eq (ext:process-exit-code proc) 0))
-      (get-output-stream-string output))))
-
-(defun foreign-frame-p (frame)
-  #-x86
-  (let ((ip (frame-ip frame)))
-    (and (sys:system-area-pointer-p ip)
-         (typep (di::frame-debug-function frame) 'di::bogus-debug-function)))
-  #+x86
-  (let ((ip (frame-ip frame)))
-    (and (sys:system-area-pointer-p ip)
-         (multiple-value-bind (pc code)
-             (di::compute-lra-data-from-pc ip)
-           (declare (ignore pc))
-           (not code)))))
-
-(defun foreign-frame-source-location (frame)
-  (let ((ip (sys:sap-int (frame-ip frame))))
-    (cond ((probe-file *gdb-program-name*)
-           (parse-gdb-line-info (gdb-command "info line *0x~x" ip)))
-          (t `(:error "no srcloc available for ~a" frame)))))
-
-;; The output of gdb looks like:
-;; Line 215 of "../../src/lisp/x86-assem.S" 
-;;    starts at address 0x805318c <Ldone+11>
-;;    and ends at 0x805318e <Ldone+13>.
-;; The ../../ are fixed up with the "target:" search list which might
-;; be wrong sometimes.
-(defun parse-gdb-line-info (string)
-  (with-input-from-string (*standard-input* string)
-    (let ((w1 (read-word)))
-      (cond ((equal w1 "Line")
-             (let ((line (read-word)))
-               (assert (equal (read-word) "of"))
-               (let* ((file (read-from-string (read-word)))
-                      (pathname
-                       (or (probe-file file)
-                           (probe-file (format nil "target:lisp/~a" file))
-                           file)))
-                 (make-location (list :file (unix-truename pathname))
-                                (list :line (parse-integer line))))))
-            (t 
-             `(:error ,string))))))
-
-(defun read-word (&optional (stream *standard-input*))
-  (peek-char t stream)
-  (concatenate 'string (loop until (whitespacep (peek-char nil stream))
-                             collect (read-char stream))))
-
-(defun whitespacep (char)
-  (member char '(#\space #\newline)))
+       (format t "~%[Disassembling bogus frames not implemented]")))))
 
 
 ;;;; Inspecting
@@ -2253,19 +2032,6 @@ The `symbol-value' of each element is a type tag.")
     (alien::alien-record-type (inspect-alien-record alien))
     (alien::alien-pointer-type (inspect-alien-pointer alien))
     (t (cmucl-inspect alien))))
-
-(defimplementation eval-context (obj)
-  (cond ((typep (class-of obj) 'structure-class)
-         (let* ((dd (kernel:layout-info (kernel:layout-of obj)))
-                (slots (kernel:dd-slots dd)))
-           (list* (cons '*package* 
-                        (symbol-package (if slots 
-                                            (kernel:dsd-name (car slots))
-                                            (kernel:dd-name dd))))
-                  (loop for slot in slots collect 
-                        (cons (kernel:dsd-name slot)
-                              (funcall (kernel:dsd-accessor slot) obj))))))))
-                 
 
 ;;;; Profiling
 (defimplementation profile (fname)
@@ -2516,10 +2282,10 @@ The `symbol-value' of each element is a type tag.")
   (multiple-value-bind (pid error) (unix:unix-fork)
     (when (not pid) (error "fork: ~A" (unix:get-unix-error-msg error)))
     (cond ((= pid 0)
-           (apply #'ext:save-lisp
-                  filename 
-                  (if restart-function
-                      `(:init-function ,restart-function))))
+           (let ((args `(,filename 
+                         ,@(if restart-function
+                               `((:init-function ,restart-function))))))
+             (apply #'ext:save-lisp args)))
           (t 
            (let ((status (waitpid pid)))
              (destructuring-bind (&key exited? status &allow-other-keys) status
@@ -2598,35 +2364,9 @@ int main (int argc, char** argv) {
       (delete-file infile)
       outfile)))
 
-#+#.(swank-backend:with-symbol 'unicode-complete 'lisp)
-(defun match-semi-standard (prefix matchp)
-  ;; Handle the CMUCL's short character names.
-  (loop for name in lisp::char-name-alist
-     when (funcall matchp prefix (car name))
-     collect (car name)))
+;; (save-image "/tmp/x.core")
 
-#+#.(swank-backend:with-symbol 'unicode-complete 'lisp)
-(defimplementation character-completion-set (prefix matchp)
-  (let ((names (lisp::unicode-complete prefix)))
-    ;; Match prefix against semistandard names.  If there's a match,
-    ;; add it to our list of matches.
-    (let ((semi-standard (match-semi-standard prefix matchp)))
-      (when semi-standard
-        (setf names (append semi-standard names))))
-    (setf names (mapcar #'string-capitalize names))
-    (loop for n in names
-       when (funcall matchp prefix n)
-       collect n)))
-
-(defimplementation codepoint-length (string)
-  "Return the number of code points in the string.  The string MUST be
-  a valid UTF-16 string."
-  (do ((len (length string))
-       (index 0 (1+ index))
-       (count 0 (1+ count)))
-      ((>= index len)
-       count)
-    (multiple-value-bind (codepoint wide)
-	(lisp:codepoint string index)
-      (declare (ignore codepoint))
-      (when wide (incf index)))))
+;; Local Variables:
+;; pbook-heading-regexp:    "^;;;\\(;+\\)"
+;; pbook-commentary-regexp: "^;;;\\($\\|[^;]\\)"
+;; End:

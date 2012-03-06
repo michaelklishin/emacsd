@@ -65,6 +65,28 @@
   (:documentation
    "Dummy class created so that swank.lisp will compile and load."))
 
+;; #+#.(cl:if (cl:find-package "LINUX") '(and) '(or))
+;; (progn
+;;   (defmacro with-blocked-signals ((&rest signals) &body body)
+;;     (ext:with-gensyms ("SIGPROCMASK" ret mask)
+;;       `(multiple-value-bind (,ret ,mask)
+;;            (linux:sigprocmask-set-n-save
+;;             ,linux:SIG_BLOCK
+;;             ,(do ((sigset (linux:sigset-empty)
+;;                           (linux:sigset-add sigset (the fixnum (pop signals)))))
+;;                  ((null signals) sigset)))
+;;          (linux:check-res ,ret 'linux:sigprocmask-set-n-save)
+;;          (unwind-protect
+;;               (progn ,@body)
+;;            (linux:sigprocmask-set ,linux:SIG_SETMASK ,mask nil)))))
+
+;;   (defimplementation call-without-interrupts (fn)
+;;     (with-blocked-signals (#.linux:SIGINT) (funcall fn))))
+
+;; #+#.(cl:if (cl:find-package "LINUX") '(or) '(and))
+(defimplementation call-without-interrupts (fn)
+  (funcall fn))
+
 (let ((getpid (or (find-symbol "PROCESS-ID" :system)
                   ;; old name prior to 2005-03-01, clisp <= 2.33.2
                   (find-symbol "PROGRAM-ID" :system)
@@ -135,24 +157,11 @@
                        :name file 
                        :type type)))))
 
-;;;; UTF 
-
-(defimplementation string-to-utf8 (string)
-  (let ((enc (load-time-value 
-              (ext:make-encoding :charset "utf-8" :line-terminator :unix)
-              t)))
-    (ext:convert-string-to-bytes string enc)))
-
-(defimplementation utf8-to-string (octets)
-  (let ((enc (load-time-value 
-              (ext:make-encoding :charset "utf-8" :line-terminator :unix)
-              t)))
-    (ext:convert-string-from-bytes octets enc)))
-
 ;;;; TCP Server
 
-(defimplementation create-socket (host port &key backlog)
-  (socket:socket-server port :interface host :backlog (or backlog 5)))
+(defimplementation create-socket (host port)
+  (declare (ignore host))
+  (socket:socket-server port))
 
 (defimplementation local-port (socket)
   (socket:socket-server-port socket))
@@ -164,11 +173,9 @@
                                       &key external-format buffering timeout)
   (declare (ignore buffering timeout))
   (socket:socket-accept socket
-                        :buffered buffering ;; XXX may not work if t
-                        :element-type (if external-format 
-                                          'character
-                                          '(unsigned-byte 8))
-                        :external-format (or external-format :default)))
+                        :buffered nil ;; XXX should be t
+                        :element-type 'character
+                        :external-format external-format))
 
 #-win32
 (defimplementation wait-for-input (streams &optional timeout)
@@ -187,47 +194,12 @@
                                if x collect s)))
               (when ready (return ready))))))))
 
-#+win32
-(defimplementation wait-for-input (streams &optional timeout)
-  (assert (member timeout '(nil t)))
-  (loop
-   (cond ((check-slime-interrupts) (return :interrupt))
-         (t 
-          (let ((ready (remove-if-not #'input-available-p streams)))
-            (when ready (return ready)))
-          (when timeout (return nil))
-          (sleep 0.1)))))
-
-#+win32
-;; Some facts to remember (for the next time we need to debug this):
-;;  - interactive-sream-p returns t for socket-streams
-;;  - listen returns nil for socket-streams
-;;  - (type-of <socket-stream>) is 'stream
-;;  - (type-of *terminal-io*) is 'two-way-stream
-;;  - stream-element-type on our sockets is usually (UNSIGNED-BYTE 8)
-;;  - calling socket:socket-status on non sockets signals an error,
-;;    but seems to mess up something internally.
-;;  - calling read-char-no-hang on sockets does not signal an error,
-;;    but seems to mess up something internally.
-(defun input-available-p (stream)
-  (case (stream-element-type stream)
-    (character
-     (let ((c (read-char-no-hang stream nil nil)))
-       (cond ((not c)
-              nil)
-             (t
-              (unread-char c stream)
-              t))))
-    (t
-     (eq (socket:socket-status (cons stream :input) 0 0)
-         :input))))
-
 ;;;; Coding systems
 
 (defvar *external-format-to-coding-system*
   '(((:charset "iso-8859-1" :line-terminator :unix)
      "latin-1-unix" "iso-latin-1-unix" "iso-8859-1-unix")
-    ((:charset "iso-8859-1")
+    ((:charset "iso-8859-1":latin-1)
      "latin-1" "iso-latin-1" "iso-8859-1")
     ((:charset "utf-8") "utf-8")
     ((:charset "utf-8" :line-terminator :unix) "utf-8-unix")
@@ -655,9 +627,7 @@ Execute BODY with NAME's function slot set to FUNCTION."
                           :location (compiler-note-location))))
 
 (defimplementation swank-compile-file (input-file output-file
-                                       load-p external-format
-                                       &key policy)
-  (declare (ignore policy))
+                                       load-p external-format)
   (with-compilation-hooks ()
     (with-compilation-unit ()
       (multiple-value-bind (fasl-file warningsp failurep)
@@ -764,126 +734,9 @@ Execute BODY with NAME's function slot set to FUNCTION."
   #+lisp=cl (ext:quit)
   #-lisp=cl (lisp:quit))
 
-
-(defimplementation preferred-communication-style ()
-  nil)
-
-;;; FIXME
-;;;
-;;; Clisp 2.48 added experimental support for threads. Basically, you
-;;; can use :SPAWN now, BUT:
-;;; 
-;;;   - there are problems with GC, and threads stuffed into weak
-;;;     hash-tables as is the case for *THREAD-PLIST-TABLE*.
-;;;
-;;;     See test case at
-;;;       http://thread.gmane.org/gmane.lisp.clisp.devel/20429
-;;;
-;;;     Even though said to be fixed, it's not:
-;;;
-;;;       http://thread.gmane.org/gmane.lisp.clisp.devel/20429/focus=20443
-;;;
-;;;   - The DYNAMIC-FLET above is an implementation technique that's
-;;;     probably not sustainable in light of threads. This got to be
-;;;     rewritten.
-;;;
-;;; TCR (2009-07-30)
-
-#+#.(cl:if (cl:find-package "MP") '(:and) '(:or)) 
-(progn
-  (defimplementation spawn (fn &key name)
-    (mp:make-thread fn :name name))
-
-  (defvar *thread-plist-table-lock*
-    (mp:make-mutex :name "THREAD-PLIST-TABLE-LOCK"))
-
-  (defvar *thread-plist-table* (make-hash-table :weak :key)
-    "A hashtable mapping threads to a plist.")
-
-  (defvar *thread-id-counter* 0)
-
-  (defimplementation thread-id (thread)
-    (mp:with-mutex-lock (*thread-plist-table-lock*)
-      (or (getf (gethash thread *thread-plist-table*) 'thread-id)
-          (setf (getf (gethash thread *thread-plist-table*) 'thread-id)
-                (incf *thread-id-counter*)))))
-
-  (defimplementation find-thread (id)
-    (find id (all-threads)
-          :key (lambda (thread)
-                 (getf (gethash thread *thread-plist-table*) 'thread-id))))
-
-  (defimplementation thread-name (thread)
-    ;; To guard against returning #<UNBOUND>.
-    (princ-to-string (mp:thread-name thread)))
-
-  (defimplementation thread-status (thread)
-    (if (thread-alive-p thread)
-        "RUNNING"
-        "STOPPED"))
-
-  (defimplementation make-lock (&key name)
-    (mp:make-mutex :name name :recursive-p t))
-
-  (defimplementation call-with-lock-held (lock function)
-    (mp:with-mutex-lock (lock)
-      (funcall function)))
-
-  (defimplementation current-thread ()
-    (mp:current-thread))
-
-  (defimplementation all-threads ()
-    (mp:list-threads))
-
-  (defimplementation interrupt-thread (thread fn)
-    (mp:thread-interrupt thread :function fn))
-
-  (defimplementation kill-thread (thread)
-    (mp:thread-interrupt thread :function t))
-
-  (defimplementation thread-alive-p (thread)
-    (mp:thread-active-p thread))
-
-  (defvar *mailboxes-lock* (make-lock :name "MAILBOXES-LOCK"))
-  (defvar *mailboxes* (list))
-
-  (defstruct (mailbox (:conc-name mailbox.))
-    thread
-    (lock (make-lock :name "MAILBOX.LOCK"))
-    (waitqueue  (mp:make-exemption :name "MAILBOX.WAITQUEUE"))
-    (queue '() :type list))
-
-  (defun mailbox (thread)
-    "Return THREAD's mailbox."
-    (mp:with-mutex-lock (*mailboxes-lock*)
-      (or (find thread *mailboxes* :key #'mailbox.thread)
-          (let ((mb (make-mailbox :thread thread)))
-            (push mb *mailboxes*)
-            mb))))
-
-  (defimplementation send (thread message)
-    (let* ((mbox (mailbox thread))
-           (lock (mailbox.lock mbox)))
-      (mp:with-mutex-lock (lock)
-        (setf (mailbox.queue mbox)
-              (nconc (mailbox.queue mbox) (list message)))
-        (mp:exemption-broadcast (mailbox.waitqueue mbox)))))
-
-  (defimplementation receive-if (test &optional timeout)
-    (let* ((mbox (mailbox (current-thread)))
-           (lock (mailbox.lock mbox)))
-      (assert (or (not timeout) (eq timeout t)))
-      (loop
-       (check-slime-interrupts)
-       (mp:with-mutex-lock (lock)
-         (let* ((q (mailbox.queue mbox))
-                (tail (member-if test q)))
-           (when tail 
-             (setf (mailbox.queue mbox) (nconc (ldiff q tail) (cdr tail)))
-             (return (car tail))))
-         (when (eq timeout t) (return (values nil t)))
-         (mp:exemption-wait (mailbox.waitqueue mbox) lock :timeout 0.2))))))
- 
+(defimplementation thread-id (thread)
+  (declare (ignore thread))
+  0)
 
 ;;;; Weak hashtables
 
@@ -898,3 +751,8 @@ Execute BODY with NAME's function slot set to FUNCTION."
                 ,@(if restart-function 
                       `((:init-function ,restart-function))))))
     (apply #'ext:saveinitmem args)))
+
+;;; Local Variables:
+;;; eval: (put 'compile-file-frobbing-notes 'lisp-indent-function 1)
+;;; eval: (put 'dynamic-flet 'common-lisp-indent-function 1)
+;;; End:

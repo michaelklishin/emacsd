@@ -1,20 +1,9 @@
-
-(defvar slime-package-fu-init-undo-stack nil)
-
-(define-slime-contrib slime-package-fu
-  "Exporting/Unexporting symbols at point."
-  (:authors "Tobias C. Rittweiler <tcr@freebits.de>")
-  (:license "GPL")
-  (:swank-dependencies swank-package-fu)
-  (:on-load 
-   (push `(progn (define-key slime-mode-map "\C-cx"
-                   ',(lookup-key slime-mode-map "\C-cx")))
-         slime-package-fu-init-undo-stack)
-   (define-key slime-mode-map "\C-cx"  'slime-export-symbol-at-point))
-  (:on-unload
-   (while slime-c-p-c-init-undo-stack
-     (eval (pop slime-c-p-c-init-undo-stack)))))
-
+;;; slime-package-fu.el --- Exporting/Unexporting symbols at point.
+;;
+;; Author:  Tobias C. Rittweiler <tcr@freebits.de>
+;;
+;; License: GNU GPL (same license as Emacs)
+;;
 
 (defvar slime-package-file-candidates
   (mapcar #'file-name-nondirectory
@@ -23,13 +12,9 @@
 (defvar slime-export-symbol-representation-function
   #'(lambda (n) (format "#:%s" n)))
 
-(defvar slime-export-symbol-representation-auto t
-  "Determine automatically which style is used for symbols, #: or :
-If it's mixed or no symbols are exported so far,
-use `slime-export-symbol-representation-function'.")
-
 (defvar slime-defpackage-regexp
   "^(\\(cl:\\|common-lisp:\\)?defpackage\\>[ \t']*")
+
 
 (defun slime-find-package-definition-rpc (package)
   (slime-eval `(swank:find-definition-for-thing (swank::guess-package ,package))))
@@ -41,9 +26,7 @@ use `slime-export-symbol-representation-function'.")
       (block nil
 	(while (re-search-forward slime-defpackage-regexp nil t)
 	  (when (slime-package-equal package (slime-sexp-at-point))
-            (backward-sexp)
-	    (return (make-slime-file-location (buffer-file-name)
-                                              (1- (point))))))))))
+	    (return (make-slime-file-location (buffer-file-name) (point)))))))))
 
 (defun slime-package-equal (designator1 designator2)
   ;; First try to be lucky and compare the strings themselves (for the
@@ -93,15 +76,6 @@ places the cursor at the start of the DEFPACKAGE form."
 		 (slime-find-package-definition-regexp package))))
 	(error "Couldn't find source definition of package: %s" package))))
 
-(defun slime-at-expression-p (pattern)
-  (when (ignore-errors
-          ;; at a list?
-          (= (point) (progn (down-list 1)
-                            (backward-up-list 1)
-                            (point))))
-    (save-excursion
-      (down-list 1)
-      (slime-in-expression-p pattern))))
 
 (defun slime-goto-next-export-clause ()
   ;; Assumes we're inside the beginning of a DEFPACKAGE form.
@@ -109,7 +83,7 @@ places the cursor at the start of the DEFPACKAGE form."
     (save-excursion
       (block nil
 	(while (ignore-errors (slime-forward-sexp) t)
-          (skip-chars-forward " \n\t")
+	  (slime-forward-blanks)
 	  (when (slime-at-expression-p '(:export *))
 	    (setq point (point))
 	    (return)))))
@@ -120,121 +94,61 @@ places the cursor at the start of the DEFPACKAGE form."
 (defun slime-search-exports-in-defpackage (symbol-name)
   "Look if `symbol-name' is mentioned in one of the :EXPORT clauses."
   ;; Assumes we're inside the beginning of a DEFPACKAGE form.
-  (flet ((target-symbol-p (symbol)
-           (string-match-p (format "^\\(\\(#:\\)\\|:\\)?%s$"
-                                   (regexp-quote symbol-name))
-                           symbol)))
-    (save-excursion
-      (block nil
-        (while (ignore-errors (slime-goto-next-export-clause) t)
-          (let ((clause-end (save-excursion (forward-sexp) (point))))
-            (save-excursion
-              (while (search-forward symbol-name clause-end t)
-                (when (target-symbol-p (slime-symbol-at-point))
-                  (return (point)))))))))))
+  (save-excursion
+    (block nil
+      (while (ignore-errors (slime-goto-next-export-clause) t)
+	(let ((clause-end (save-excursion (forward-sexp) (point))))
+	  (when (and (search-forward symbol-name clause-end t)
+		     (equal (slime-symbol-at-point) symbol-name))
+	    (return (point))))))))
 
-(defun slime-defpackage-exports ()
-  "Return a list of symbols inside :export clause of a defpackage."
-  ;; Assumes we're inside the beginning of a DEFPACKAGE form.
-  (flet ((normalize-name (name)
-           (replace-regexp-in-string "^\\(\\(#:\\)\\|:\\)"
-                                     "" name)))
-   (save-excursion
-     (loop while (ignore-errors (slime-goto-next-export-clause) t)
-           do (down-list) (forward-sexp)
-           append
-           (loop while (ignore-errors (forward-sexp) t)
-                 collect (normalize-name (slime-symbol-at-point)))
-           do (up-list) (backward-sexp)))))
 
-(defun slime-symbol-exported-p (name symbols)
-  (member* name symbols :test 'equalp))
-
-(defun slime-frob-defpackage-form (current-package do-what symbols)
+(defun slime-frob-defpackage-form (current-package do-what symbol)
   "Adds/removes `symbol' from the DEFPACKAGE form of `current-package'
 depending on the value of `do-what' which can either be `:export',
 or `:unexport'.
 
 Returns t if the symbol was added/removed. Nil if the symbol was
 already exported/unexported."
-  (save-excursion
-    (slime-goto-package-source-definition current-package)
-    (down-list 1)			; enter DEFPACKAGE form
-    (forward-sexp)			; skip DEFPACKAGE symbol
-    (forward-sexp)			; skip package name
-    (let ((exported-symbols (slime-defpackage-exports))
-          (symbols (if (consp symbols)
-                       symbols
-                       (list symbols)))
-          (number-of-actions 0))
-      (ecase do-what
-        (:export
-         (slime-add-export)
-         (dolist (symbol symbols)
-           (let ((symbol-name (slime-cl-symbol-name symbol)))
-             (unless (slime-symbol-exported-p symbol-name exported-symbols)
-               (incf number-of-actions)
-               (slime-insert-export symbol-name)))))
-        (:unexport
-         (dolist (symbol symbols)
-           (let ((symbol-name (slime-cl-symbol-name symbol)))
-             (when (slime-symbol-exported-p symbol-name exported-symbols)
-               (slime-remove-export symbol-name)
-               (incf number-of-actions))))))
-      number-of-actions)))
-
-(defun slime-add-export ()
-  (let (point)
+  (let ((symbol-name (slime-cl-symbol-name symbol)))
     (save-excursion
-      (while (ignore-errors (slime-goto-next-export-clause) t)
-        (setq point (point))))
-    (cond (point
-           (goto-char point)
-           (down-list)
-           (slime-end-of-list))
-          (t
-           (slime-end-of-list)
-           (unless (looking-back "^\\s-*")
-             (newline-and-indent))
-           (insert "(:export ")
-           (save-excursion (insert ")"))))))
+      (slime-goto-package-source-definition current-package)
+      (down-list 1)			; enter DEFPACKAGE form
+      (forward-sexp)			; skip DEFPACKAGE symbol
+      (forward-sexp)			; skip package name
+      (let ((already-exported-p (slime-search-exports-in-defpackage symbol-name)))
+	(ecase do-what
+	  (:export
+	   (if already-exported-p
+	       nil
+	       (prog1 t (slime-insert-export symbol-name))))
+	  (:unexport
+	   (if already-exported-p
+	       (prog1 t (slime-remove-export symbol-name))
+	       nil)))))))
 
-(defun slime-export-symbols ()
-  "Return a list of symbols inside :export clause of a defpackage."
-  ;; Assumes we're at the beginning of :export
-  (save-excursion
-    (loop while (ignore-errors (forward-sexp) t)
-          collect (slime-symbol-at-point))))
-
-(defun slime-determine-symbol-style ()
-  ;; Assumes we're inside :export
-  (save-excursion
-    (slime-beginning-of-list)
-    (slime-forward-sexp)
-    (let ((symbols (slime-export-symbols)))
-      (cond ((every (lambda (x)
-                      (string-match "^:" x))
-                    symbols)
-             (lambda (n) (format ":%s" n)))
-            ((every (lambda (x)
-                      (string-match "^#:" x))
-                    symbols)
-             (lambda (n) (format "#:%s" n)))
-            (t
-             slime-export-symbol-representation-function)))))
-
-(defun slime-format-symbol-for-defpackage (symbol-name)
-  (funcall (if slime-export-symbol-representation-auto
-               (slime-determine-symbol-style)
-               slime-export-symbol-representation-function)
-           symbol-name))
 
 (defun slime-insert-export (symbol-name)
-  ;; Assumes we're at the inside :export after the last symbol
-  (let ((symbol-name (slime-format-symbol-for-defpackage symbol-name)))
-    (unless (looking-back "^\\s-*")
-      (newline-and-indent))
-    (insert symbol-name)))
+  ;; Assumes we're inside the beginning of a DEFPACKAGE form.
+  (flet ((goto-last-export-clause ()
+	   (let (point)
+	     (save-excursion
+	       (while (ignore-errors (slime-goto-next-export-clause) t)
+		 (setq point (point))))
+	     (when point (goto-char point))
+	     point)))
+    (let ((defpackage-point (point))
+	  (symbol-name (funcall slime-export-symbol-representation-function
+				symbol-name)))
+      (cond ((goto-last-export-clause)
+	     (down-list) (slime-end-of-list)
+	     (unless (looking-back "^\\s-*")
+	       (newline-and-indent))
+	     (insert symbol-name))
+	    (t
+	     (slime-end-of-list)
+	     (newline-and-indent)
+	     (insert (format "(:export %s)" symbol-name)))))))
 
 (defun slime-remove-export (symbol-name)
   ;; Assumes we're inside the beginning of a DEFPACKAGE form.
@@ -248,6 +162,7 @@ already exported/unexported."
 	(when (looking-at "^\\s-*$")
 	  (join-line))))))
 
+
 (defun slime-export-symbol-at-point ()
   "Add the symbol at point to the defpackage source definition
 belonging to the current buffer-package. With prefix-arg, remove
@@ -258,26 +173,28 @@ symbol in the Lisp image if possible."
 	(symbol (slime-symbol-at-point)))
     (unless symbol (error "No symbol at point."))
     (cond (current-prefix-arg
-	   (if (plusp (slime-frob-defpackage-form package :unexport symbol))
+	   (if (slime-frob-defpackage-form package :unexport symbol)
 	       (message "Symbol `%s' no longer exported form `%s'" symbol package)
 	       (message "Symbol `%s' is not exported from `%s'" symbol package))
 	   (slime-unexport-symbol symbol package))
 	  (t
-	   (if (plusp (slime-frob-defpackage-form package :export symbol))
+	   (if (slime-frob-defpackage-form package :export symbol)
 	       (message "Symbol `%s' now exported from `%s'" symbol package)
 	       (message "Symbol `%s' already exported from `%s'" symbol package))
 	   (slime-export-symbol symbol package)))))
 
-(defun slime-export-class (name)
-  "Export acessors, constructors, etc. associated with a structure or a class"
-  (interactive (list (slime-read-from-minibuffer "Export structure named: "
-                                                 (slime-symbol-at-point))))
-  (let* ((package (slime-current-package))
-         (symbols (slime-eval `(swank:export-structure ,name ,package))))
-    (message "%s symbols exported from `%s'"
-             (slime-frob-defpackage-form package :export symbols)
-             package)))
 
-(defalias 'slime-export-structure 'slime-export-class)
+(defvar slime-package-fu-init-undo-stack nil)
+
+(defun slime-package-fu-init ()
+  (slime-require :swank-package-fu)
+  (push `(progn (define-key slime-mode-map "\C-cx"
+		  ',(lookup-key slime-mode-map "\C-cx")))
+	slime-package-fu-init-undo-stack)
+  (define-key slime-mode-map "\C-cx"  'slime-export-symbol-at-point))
+
+(defun slime-package-fu-unload ()
+  (while slime-c-p-c-init-undo-stack
+    (eval (pop slime-c-p-c-init-undo-stack))))
 
 (provide 'slime-package-fu)

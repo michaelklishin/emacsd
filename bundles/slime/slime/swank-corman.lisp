@@ -224,7 +224,7 @@
 
 ;;; Socket communication
 
-(defimplementation create-socket (host port &key backlog)
+(defimplementation create-socket (host port)
   (sockets:start-sockets)
   (sockets:make-server-socket :host host :port port))
 
@@ -362,9 +362,8 @@
     (funcall fn)))
 
 (defimplementation swank-compile-file (input-file output-file 
-				       load-p external-format
-                                       &key policy)
-  (declare (ignore external-format policy))
+				       load-p external-format)
+  (declare (ignore external-format))
   (with-compilation-hooks ()
     (let ((*buffer-name* nil)
 	  (*compile-filename* input-file))

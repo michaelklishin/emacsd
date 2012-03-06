@@ -46,11 +46,11 @@ If OBJECT was saved previously return the old id."
           (setf (gethash object *object-to-presentation-id*) id)
           id))))
 
-(defslimefun lookup-presented-object (id)
+(defun lookup-presented-object (id)
   "Retrieve the object corresponding to ID.
 The secondary value indicates the absence of an entry."
   (etypecase id
-    (integer
+    (integer 
      ;; 
      (multiple-value-bind (object foundp)
          (gethash id *presentation-id-to-object*)
@@ -81,7 +81,7 @@ The secondary value indicates the absence of an entry."
             (values (inspector-nth-part part-index) t)
             (values nil nil)))))))
 
-(defslimefun lookup-presented-object-or-lose (id)
+(defslimefun get-repl-result (id)
   "Get the result of the previous REPL evaluation with ID."
   (multiple-value-bind (object foundp) (lookup-presented-object id)
     (cond (foundp object)
@@ -226,7 +226,7 @@ The secondary value indicates the absence of an entry."
                 (disassemble object)))))
 
 (defslimefun inspect-presentation (id reset-p)
-  (let ((what (lookup-presented-object-or-lose id)))
+  (let ((what (lookup-presented-object id)))
     (when reset-p
       (reset-inspector))
     (inspect-object what)))
