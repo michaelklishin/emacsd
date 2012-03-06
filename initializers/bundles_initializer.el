@@ -26,6 +26,7 @@
 (elbundle/load-elbundle "markdown")
 (elbundle/load-elbundle "git")
 
+(elbundle/load-elbundle "slime")
 (elbundle/load-elbundle "clojure")
 
 
