@@ -25,7 +25,6 @@
 (elbundle/load-elbundle "textile")
 (elbundle/load-elbundle "markdown")
 
-(elbundle/load-elbundle "slime")
 (elbundle/load-elbundle "clojure")
 
 
