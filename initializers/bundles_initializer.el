@@ -24,6 +24,7 @@
 (elbundle/load-elbundle "text")
 (elbundle/load-elbundle "textile")
 (elbundle/load-elbundle "markdown")
+(elbundle/load-elbundle "git")
 
 (elbundle/load-elbundle "clojure")
 
@@ -36,7 +37,6 @@
 (elbundle/load-elbundle "org")
 
 (elbundle/load-elbundle "linkify")
-(elbundle/load-elbundle "git")
 (elbundle/load-elbundle "hg")
 
 (elbundle/load-elbundle "rspec")
