@@ -4,7 +4,6 @@
 (require 'clojure-mode)
 (require 'clojure-test-mode)
 
-;; (require 'paredit)
 (require 'highlight-parentheses)
 
 ;; load bundle snippets
@@ -21,6 +20,7 @@
 ;; Paredit
 ;;
 
+;; (require 'paredit)
 ;; (paredit-mode)
 ;; (autoload 'paredit-mode "paredit" "Minor mode for pseudo-structurally editing Lisp code." t)
 ;; (add-hook 'clojure-mode-hook          (lambda () (paredit-mode +1)))
