@@ -1,0 +1,5 @@
+# name: (reify ...)
+# --
+(reify ${1:interface}
+  (${2:aMethod} [this ${3:arguments}]
+    $0))
