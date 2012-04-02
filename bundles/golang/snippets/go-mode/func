@@ -1,0 +1,5 @@
+# name: func ...
+# --
+func ${1:Name} (${2:arguments}) ${3:ReturnType} {
+        $0
+}
