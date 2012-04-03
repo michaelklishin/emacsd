@@ -61,6 +61,7 @@
 (elbundle/load-elbundle "yaml")
 (elbundle/load-elbundle "haml")
 (elbundle/load-elbundle "xml")
+(elbundle/load-elbundle "mustache")
 
 (elbundle/load-elbundle "far-search")
 (elbundle/load-elbundle "find-recursive")
