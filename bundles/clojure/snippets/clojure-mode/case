@@ -1,0 +1,4 @@
+# name: (case ...)
+# --
+(case ${1:value}
+  $0)
