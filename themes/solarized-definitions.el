@@ -76,7 +76,7 @@ the \"Gen RGB\" column in solarized-definitions.el to improve them further."
     (red     "#dc322f" "#c60007" "#d70000" "#cd0000")
     (magenta "#d33682" "#c61b6e" "#af005f" "#cd00cd")
     (violet  "#6c71c4" "#5859b7" "#5f5faf" "#ff00ff")
-    (blue    "#268bd2" "#2075c7" "#0087ff" "#0000ee")
+    (blue    "#1e6ea7" "#2075c7" "#0087ff" "#0000ee")
     (cyan    "#2aa198" "#259185" "#00afaf" "#00cdcd")
     (green   "#859900" "#728a05" "#5f8700" "#00cd00"))
   "This is a table of all the colors used by the Solarized color theme. Each
@@ -88,10 +88,10 @@ the \"Gen RGB\" column in solarized-definitions.el to improve them further."
            (let ((index (if window-system
                             (if solarized-degrade
                                 3
-			      (if solarized-broken-srgb 2 1))
-			  (if (= solarized-termcolors 256)
-			      3
-			    4))))
+                              (if solarized-broken-srgb 2 1))
+                          (if (= solarized-termcolors 256)
+                              3
+                            4))))
              (nth index (assoc name solarized-colors)))))
     (let ((base03      (find-color 'base03))
           (base02      (find-color 'base02))

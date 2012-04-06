@@ -140,8 +140,8 @@
      (font-lock-constant-face ((t (:foreground ,zenburn-fg))))
      (font-lock-doc-face ((t (:foreground ,zenburn-green+1))))
      (font-lock-doc-string-face ((t (:foreground ,zenburn-blue+1))))
-     (font-lock-function-name-face ((t (:foreground ,zenburn-blue))))
-     (font-lock-keyword-face ((t (:inherit zenburn-strong-1-face))))
+     (font-lock-function-name-face ((t (:foreground ,zenburn-blue+1))))
+     (font-lock-keyword-face ((t (:foreground ,zenburn-orange))))
      (font-lock-negation-char-face ((t (:foreground ,zenburn-fg))))
      (font-lock-preprocessor-face ((t (:foreground ,zenburn-blue))))
      (font-lock-string-face ((t (:foreground ,zenburn-red))))
@@ -349,7 +349,7 @@
      (org-scheduled-face ((t (:foreground ,zenburn-green+4))))
      (org-scheduled-previously-face ((t (:foreground ,zenburn-red-4))))
      (org-scheduled-today-face ((t (:foreground ,zenburn-blue+1))))
-     (org-special-keyword-face ((t (:foreground ,zenburn-yellow-1))))
+     (org-special-keyword-face ((t (:foreground ,zenburn-orange))))
      (org-table-face ((t (:foreground ,zenburn-green+2))))
      (org-tag-face ((t (:bold t :weight bold))))
      (org-time-grid-face ((t (:foreground ,zenburn-orange))))
@@ -409,9 +409,7 @@
      (wl-highlight-summary-thread-top-face ((t (:foreground "#efdcbc"))))
      (wl-highlight-thread-indent-face ((t (:foreground "#ecbcec"))))
      (wl-highlight-summary-refiled-face ((t (:foreground ,zenburn-fg))))
-     (wl-highlight-summary-displaying-face ((t (:underline t :weight bold))))
-
-     )))
+     (wl-highlight-summary-displaying-face ((t (:underline t :weight bold)))))))
 
 (defalias 'zenburn #'color-theme-zenburn)
 
