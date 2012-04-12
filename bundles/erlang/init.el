@@ -1,9 +1,9 @@
 ;; This is needed for Erlang mode setup
-(setq erlang-root-dir "/usr/local/Cellar/erlang/R14B03/")
-(setq load-path (cons "/usr/local/Cellar/erlang/R14B03/lib/erlang/lib/tools-2.6.6.4/emacs/" load-path))
-(setq exec-path (cons "/usr/local/Cellar/erlang/R14B03/bin/" exec-path))
+(setq erlang-root-dir "/usr/local/Cellar/erlang/R15B01/")
+(setq load-path (cons "/usr/local/Cellar/erlang/R15B01/lib/erlang/lib/tools-2.6.7/emacs/" load-path))
+(setq exec-path (cons "/usr/local/Cellar/erlang/R15B01/bin/" exec-path))
 
-(setq erlang-root-dir "/usr/local/Cellar/erlang/R14B03")
+(setq erlang-root-dir "/usr/local/Cellar/erlang/R15B01")
 
 (require 'erlang-start)
 (require 'erlang)
