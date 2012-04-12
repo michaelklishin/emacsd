@@ -5,21 +5,25 @@
 (defun elbundle/path-of (bundle-name)
   (concat emacsd-dir "bundles/" bundle-name "/"))
 
-(defmacro elbundle/load-elbundle (bundle-name)
+(defun elbundle/load-elbundle (bundle-name)
   (let* ((bundle-dir (elbundle/path-of bundle-name))
-        (bundle-init-file (concat bundle-dir "init"))
-        (bundle-keymap-file (concat bundle-dir "keymap"))
-        (bundle-grammar-file (concat bundle-dir "grammar")))
+         (bundle-init-file (concat bundle-dir "init"))
+         (bundle-keymap-file (concat bundle-dir "keymap"))
+         (bundle-grammar-file (concat bundle-dir "grammar")))
     ;; let* body
     ;; (message "Adding %s to load-path..." bundle-dir)
-     (add-to-list 'load-path bundle-dir)
-     (load bundle-init-file)
-     ;; don't break if keymap or grammar are not found
-     (load bundle-keymap-file t)
-     (load bundle-grammar-file t)))
+    (add-to-list 'load-path bundle-dir)
+    (load bundle-init-file)
+    ;; don't break if keymap or grammar are not found
+    (load bundle-keymap-file t)
+    (load bundle-grammar-file t)))
 
 
 (add-to-list 'load-path "bundles")
+
+(if (emacs23?)
+    (elbundle/load-elbundle "package")
+    (require 'package))
 
 (elbundle/load-elbundle "text")
 (elbundle/load-elbundle "textile")
@@ -33,7 +37,7 @@
 (elbundle/load-elbundle "ruby")
 
 (elbundle/load-elbundle "emacs-lisp")
-;; (elbundle/load-elbundle "etest")
+(elbundle/load-elbundle "emacs")
 
 (elbundle/load-elbundle "org")
 
@@ -53,6 +57,7 @@
 (elbundle/load-elbundle "scala")
 
 ;; (elbundle/load-elbundle "ocaml")
+(elbundle/load-elbundle "joxa")
 (elbundle/load-elbundle "haskell")
 (elbundle/load-elbundle "perl")
 (elbundle/load-elbundle "javascript")
@@ -69,12 +74,6 @@
 
 (elbundle/load-elbundle "gist")
 (elbundle/load-elbundle "webtools")
-(elbundle/load-elbundle "top-mode")
 
-;; for extensions to Emacs itself
-(elbundle/load-elbundle "emacs")
-
-;; (elbundle/load-elbundle "apache-mode")
 (elbundle/load-elbundle "erlang")
-;; (elbundle/load-elbundle "color_themes")
 (elbundle/load-elbundle "ack")
