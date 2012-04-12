@@ -21,12 +21,11 @@
 (defvar byte-compile-verbose t)
 ;; (load-initializer "bytecode_cache")
 
-
+(load-initializer "elisp")
 (load-initializer "path")
 (load-initializer "keymap")
 (load-initializer "kdb_macros")
 (load-initializer "yasnippet")
-(load-initializer "modes")
 (load-initializer "ui")
 (load-initializer "ido")
 (load-initializer "bundles")
