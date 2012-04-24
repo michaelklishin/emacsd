@@ -30,10 +30,13 @@
 (setq fill-column 79)
 (setq font-lock-verbose nil)
 
+(column-number-mode)
+
+
+;; color themes
 (add-to-list 'load-path "~/emacsd/bundles/color_themes")
 (require 'color-theme)
 
-;; color themes
 (load "themes/twilight")
 (load "themes/vibrant-ink")
 (load "themes/zenburn-ng")
