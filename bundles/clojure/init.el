@@ -4,17 +4,36 @@
 (require 'clojure-mode)
 (require 'clojure-test-mode)
 
-(require 'highlight-parentheses)
-
 ;; load bundle snippets
 (yas/load-directory "~/emacsd/bundles/clojure/snippets")
+
+(add-to-list 'auto-mode-alist '("\\.clj$" . clojure-mode))
+(add-hook 'clojure-mode-hook   (lambda () (highlight-parentheses-mode +1)))
+
+
+;;
+;; hl-p
+;;
+
+(require 'highlight-parentheses)
 
 (autoload 'highlight-parentheses-mode "highlight parenthesis"
   "Highlights parenthesis in Lisp code." t)
 (highlight-parentheses-mode)
 
-(add-to-list 'auto-mode-alist '("\\.clj$" . clojure-mode))
-(add-hook 'clojure-mode-hook   (lambda () (highlight-parentheses-mode +1)))
+
+
+;;
+;; Autopair
+;;
+
+(require 'autopair)
+
+(add-hook 'clojure-mode-hook
+          #'(lambda () (autopair-mode)))
+(add-hook 'emacs-lisp-mode-hook
+          #'(lambda () (autopair-mode)))
+
 
 ;;
 ;; Paredit
