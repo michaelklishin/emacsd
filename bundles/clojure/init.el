@@ -27,12 +27,12 @@
 ;; Autopair
 ;;
 
-(require 'autopair)
+;; (require 'autopair)
 
-(add-hook 'clojure-mode-hook
-          #'(lambda () (autopair-mode)))
-(add-hook 'emacs-lisp-mode-hook
-          #'(lambda () (autopair-mode)))
+;; (add-hook 'clojure-mode-hook
+;;           #'(lambda () (autopair-mode)))
+;; (add-hook 'emacs-lisp-mode-hook
+;;           #'(lambda () (autopair-mode)))
 
 
 ;;
