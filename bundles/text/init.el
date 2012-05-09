@@ -2,11 +2,7 @@
 (yas/load-directory "~/emacsd/bundles/text/snippets")
 
 
-;;
-;;  Behavior
-;;
-
-;; ...
+(require 'undo-tree)
 
 ;;
 ;;  Clipboard
