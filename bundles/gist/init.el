@@ -1,1 +1,1 @@
-(load "gist-mode")
+(require 'gist)
