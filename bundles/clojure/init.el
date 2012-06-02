@@ -39,10 +39,10 @@
 ;; Paredit
 ;;
 
-;; (require 'paredit)
-;; (paredit-mode)
-;; (autoload 'paredit-mode "paredit" "Minor mode for pseudo-structurally editing Lisp code." t)
-;; (add-hook 'clojure-mode-hook          (lambda () (paredit-mode +1)))
+(require 'paredit)
+(paredit-mode)
+(autoload 'paredit-mode "paredit" "Minor mode for pseudo-structurally editing Lisp code." t)
+(add-hook 'clojure-mode-hook          (lambda () (paredit-mode +1)))
 ;; (add-hook 'emacs-lisp-mode-hook       (lambda () (paredit-mode +1)))
 ;; (add-hook 'lisp-mode-hook             (lambda () (paredit-mode +1)))
 ;; (add-hook 'lisp-interaction-mode-hook (lambda () (paredit-mode +1)))
