@@ -22,19 +22,6 @@
 (highlight-parentheses-mode)
 
 
-
-;;
-;; Autopair
-;;
-
-;; (require 'autopair)
-
-;; (add-hook 'clojure-mode-hook
-;;           #'(lambda () (autopair-mode)))
-;; (add-hook 'emacs-lisp-mode-hook
-;;           #'(lambda () (autopair-mode)))
-
-
 ;;
 ;; Paredit
 ;;
