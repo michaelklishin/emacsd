@@ -4,10 +4,14 @@
 ;; it is a good way to detect if we are running in a shell
 ;; and fix yanking/pasting problem.
 ;;
-(unless window-system
-  (message "Running in a terminal, disabling x-select-enable-clipboard")
-  (setq x-select-enable-clipboard nil)
-  (setq interprogram-paste-function nil))
+(if (not  window-system)
+    (progn
+      (message "Running in a terminal, disabling x-select-enable-clipboard")
+      (setq x-select-enable-clipboard nil)
+      (setq interprogram-paste-function nil))
+  (progn
+    (setq x-select-enable-clipboard t)
+    (setq interprogram-paste-function 'x-selection-value)))
 
 
 
@@ -37,9 +41,9 @@
 (add-to-list 'load-path "~/emacsd/bundles/color_themes")
 (require 'color-theme)
 
-(load "themes/twilight")
-(load "themes/vibrant-ink")
-(load "themes/zenburn-ng")
+(load "themes/twilight-theme")
+(load "themes/vibrant-ink-theme")
+(load "themes/zenburn-ng-theme")
 (load "themes/solarized")
 
 ;; (color-theme-twilight)
