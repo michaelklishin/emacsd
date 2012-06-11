@@ -1,17 +1,17 @@
+(setq x-select-enable-clipboard t)
+(setq interprogram-paste-function 'x-selection-value)
+
 ;;
-;; On Mac, windows system is ns (next step, origin of Cocoa),
+;; On OS X, windows system is ns (for Next Step, that Cocoa is derived from),
 ;; and on Linux it is x. In terminal, though, it is nil so
 ;; it is a good way to detect if we are running in a shell
 ;; and fix yanking/pasting problem.
 ;;
-(if (not  window-system)
-    (progn
-      (message "Running in a terminal, disabling x-select-enable-clipboard")
-      (setq x-select-enable-clipboard nil)
-      (setq interprogram-paste-function nil))
+(unless window-system
   (progn
-    (setq x-select-enable-clipboard t)
-    (setq interprogram-paste-function 'x-selection-value)))
+    (message "Running in a terminal, disabling x-select-enable-clipboard")
+    (setq x-select-enable-clipboard nil)
+    (setq interprogram-paste-function nil)))
 
 
 
