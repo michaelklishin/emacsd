@@ -1,6 +1,3 @@
-(setq x-select-enable-clipboard t)
-(setq interprogram-paste-function 'x-selection-value)
-
 ;;
 ;; On OS X, windows system is ns (for Next Step, that Cocoa is derived from),
 ;; and on Linux it is x. In terminal, though, it is nil so
@@ -59,3 +56,6 @@
 
 (global-set-key "\C-\c\C-f\C-s" 'ns-toggle-fullscreen)
 ;; (ns-toggle-fullscreen)
+
+(setq x-select-enable-clipboard t)
+(setq interprogram-paste-function 'x-selection-value)
