@@ -1,0 +1,4 @@
+# name: (with-open [...] ...)
+# --
+(with-open [${1:res} ${2:value}]
+  $0)
