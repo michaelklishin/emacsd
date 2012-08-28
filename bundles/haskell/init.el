@@ -3,9 +3,9 @@
 (require 'haskell-mode)
 (add-to-list 'auto-mode-alist '("\\.hs$" . haskell-mode))
 
-(add-hook 'haskell-mode-hook 'turn-on-haskell-indent)
+(add-hook 'haskell-mode-hook 'turn-on-haskell-doc-mode)
+(add-hook 'haskell-mode-hook 'turn-on-haskell-simple-indent)
 
 ;; (yas/load-directory "~/emacsd/bundles/haskell/snippets")
 
 (define-key haskell-mode-map "\C-ch" 'haskell-hoogle)
-;(setq haskell-hoogle-command "hoogle")
