@@ -59,6 +59,7 @@
 ;; (elbundle/load-elbundle "ocaml")
 (elbundle/load-elbundle "joxa")
 (elbundle/load-elbundle "haskell")
+(elbundle/load-elbundle "fsharp")
 (elbundle/load-elbundle "perl")
 (elbundle/load-elbundle "javascript")
 (elbundle/load-elbundle "shell-script")
