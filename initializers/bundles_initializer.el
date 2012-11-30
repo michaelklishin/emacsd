@@ -26,13 +26,15 @@
     (require 'package))
 
 (elbundle/load-elbundle "text")
-(elbundle/load-elbundle "textile")
 (elbundle/load-elbundle "markdown")
+(elbundle/load-elbundle "textile")
 (elbundle/load-elbundle "git")
 
 (elbundle/load-elbundle "slime")
 (elbundle/load-elbundle "clojure")
 
+(elbundle/load-elbundle "erlang")
+(elbundle/load-elbundle "elixir")
 
 (elbundle/load-elbundle "ruby")
 
@@ -75,5 +77,4 @@
 (elbundle/load-elbundle "gist")
 (elbundle/load-elbundle "webtools")
 
-(elbundle/load-elbundle "erlang")
 (elbundle/load-elbundle "ack")
