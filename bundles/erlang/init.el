@@ -3,7 +3,13 @@
 (add-to-list 'load-path      (car (file-expand-wildcards "/usr/local/Cellar/erlang/R*/lib/erlang/lib/tools-*/emacs")))
 (add-to-list 'exec-path      (car (file-expand-wildcards "/usr/local/Cellar/erlang/R*/bin")))
 
-(setq erlang-root-dir (car (file-expand-wildcards "/usr/local/Cellar/erlang/R*")))
+(setq erlang-root-dir     (car (file-expand-wildcards "/usr/local/Cellar/erlang/R*")))
+
+(defvar erlang-man-dirs
+  '(("Man - Commands" "/share/man/man1" t)
+    ("Man - Modules" "/share/man/man3" t)
+    ("Man - Files" "/share/man/man4" t)
+    ("Man - Applications" "/share/man/man6" t)))
 
 (require 'erlang-start)
 (require 'erlang)
