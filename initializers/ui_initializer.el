@@ -44,8 +44,8 @@
 (load "themes/solarized")
 
 ;; (color-theme-twilight)
-;; (color-theme-vibrant-ink)
-(color-theme-zenburn)
+(color-theme-vibrant-ink)
+;; (color-theme-zenburn)
 ;; (color-theme-solarized-dark)
 ;; (color-theme-solarized-light)
 
