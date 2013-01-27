@@ -39,8 +39,8 @@
 (require 'color-theme)
 
 (load "themes/twilight-theme")
-(load "themes/vibrant-ink-theme")
-(load "themes/zenburn-ng-theme")
+;; (load "themes/vibrant-ink-theme")
+;; (load "themes/zenburn-ng-theme")
 ;; (load "themes/solarized")
 
 (color-theme-twilight)
@@ -55,7 +55,8 @@
 ;;
 
 (global-set-key "\C-\c\C-f\C-s" 'ns-toggle-fullscreen)
-;; (ns-toggle-fullscreen)
+(when (fboundp 'ns-toggle-fullscreen)
+  (ns-toggle-fullscreen))
 
 (setq x-select-enable-clipboard t)
 (setq interprogram-paste-function 'x-selection-value)
