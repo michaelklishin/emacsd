@@ -23,8 +23,7 @@
 
 (load-initializer "elisp")
 (load-initializer "path")
-(load-initializer "keymap")
-(load-initializer "kdb_macros")
+(load-initializer "kbd")
 (load-initializer "yasnippet")
 (load-initializer "ui")
 (load-initializer "ido")

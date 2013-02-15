@@ -6,6 +6,10 @@
 ;; Some bits are shameless attempts to make Emacs Lisp look a little bit more like
 ;; Clojure.
 
+(global-set-key (kbd "C-c v") 'eval-buffer)
+(define-key emacs-lisp-mode-map (kbd "C-c C-c") 'comment-region)
+(define-key emacs-lisp-mode-map (kbd "C-c C-u") 'uncomment-region)
+
 ;;
 ;; Clojurify all the things
 ;;
