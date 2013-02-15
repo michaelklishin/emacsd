@@ -40,3 +40,4 @@
 (add-hook 'lisp-mode-hook             (lambda () (paredit-mode +1)))
 (add-hook 'lisp-interaction-mode-hook (lambda () (paredit-mode +1)))
 (add-hook 'slime-repl-mode-hook       (lambda () (paredit-mode +1)))
+(add-hook 'nrepl-mode-hook            (lambda () (paredit-mode +1)))
