@@ -21,13 +21,13 @@
 (defvar byte-compile-verbose t)
 ;; (load-initializer "bytecode_cache")
 
+(load "custom-variables")
+
 (load-initializer "elisp")
 (load-initializer "path")
 (load-initializer "kbd")
-(load-initializer "yasnippet")
-(load-initializer "ui")
 (load-initializer "ido")
+(load-initializer "yasnippet")
 (load-initializer "bundles")
 (load-initializer "scratches")
-
-(load "custom-variables")
+(load-initializer "ui")

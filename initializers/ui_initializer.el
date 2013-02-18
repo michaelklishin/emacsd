@@ -20,11 +20,6 @@
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 (if (fboundp 'tool-bar-mode) (tool-bar-mode -1))
 
-;; set dark background
-(set-background-color "Black")
-(set-foreground-color "White")
-(set-cursor-color "yellow")
-
 ;; yes, use transient mark mode
 (transient-mark-mode t)
 
@@ -33,6 +28,10 @@
 
 (column-number-mode)
 
+;; set dark background
+(set-background-color "Black")
+(set-foreground-color "White")
+(set-cursor-color "yellow")
 
 ;; color themes
 (add-to-list 'load-path "~/emacsd/bundles/color_themes")
