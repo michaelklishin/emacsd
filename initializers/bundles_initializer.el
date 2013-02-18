@@ -29,43 +29,27 @@
 (elbundle/load-elbundle "markdown")
 (elbundle/load-elbundle "textile")
 (elbundle/load-elbundle "git")
-
-(elbundle/load-elbundle "slime")
-(elbundle/load-elbundle "clojure")
-
-(elbundle/load-elbundle "erlang")
-(elbundle/load-elbundle "elixir")
-
-(elbundle/load-elbundle "ruby")
-
-(elbundle/load-elbundle "emacs-lisp")
-(elbundle/load-elbundle "emacs")
-
-(elbundle/load-elbundle "org")
-
-(elbundle/load-elbundle "linkify")
 (elbundle/load-elbundle "hg")
 
+(elbundle/load-elbundle "clojure")
+(elbundle/load-elbundle "erlang")
+
+(elbundle/load-elbundle "python")
+(elbundle/load-elbundle "scala")
+
+(elbundle/load-elbundle "haskell")
+(elbundle/load-elbundle "javascript")
+(elbundle/load-elbundle "shell-script")
+
+(elbundle/load-elbundle "ruby")
+(elbundle/load-elbundle "linkify")
 (elbundle/load-elbundle "rspec")
 (elbundle/load-elbundle "cucumber")
 (elbundle/load-elbundle "rake")
 
-(elbundle/load-elbundle "c")
-(elbundle/load-elbundle "cpp")
-(elbundle/load-elbundle "golang")
-(elbundle/load-elbundle "rustlang")
-(elbundle/load-elbundle "sql")
-(elbundle/load-elbundle "erlang")
-(elbundle/load-elbundle "python")
-(elbundle/load-elbundle "scala")
-
-;; (elbundle/load-elbundle "ocaml")
-(elbundle/load-elbundle "joxa")
-(elbundle/load-elbundle "haskell")
-(elbundle/load-elbundle "fsharp")
-(elbundle/load-elbundle "perl")
-(elbundle/load-elbundle "javascript")
-(elbundle/load-elbundle "shell-script")
+(elbundle/load-elbundle "emacs-lisp")
+(elbundle/load-elbundle "emacs")
+(elbundle/load-elbundle "org")
 
 (elbundle/load-elbundle "yaml")
 (elbundle/load-elbundle "haml")
@@ -80,3 +64,17 @@
 (elbundle/load-elbundle "webtools")
 
 (elbundle/load-elbundle "ack")
+
+(elbundle/load-elbundle "c")
+(elbundle/load-elbundle "cpp")
+(elbundle/load-elbundle "golang")
+(elbundle/load-elbundle "rustlang")
+(elbundle/load-elbundle "sql")
+
+;; (elbundle/load-elbundle "ocaml")
+;; (elbundle/load-elbundle "fsharp")
+(elbundle/load-elbundle "perl")
+
+;; (elbundle/load-elbundle "slime")
+;; (elbundle/load-elbundle "joxa")
+(elbundle/load-elbundle "elixir")
