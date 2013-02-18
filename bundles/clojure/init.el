@@ -7,6 +7,12 @@
 (require 'clojure-mode)
 (require 'clojure-test-mode)
 
+(add-hook 'clojure-mode-hook (lambda ()
+                               (def compile-command "lein compile")))
+(add-hook 'nrepl-mode-hook (lambda ()
+                             (def compile-command "lein compile")))
+
+
 ;; load bundle snippets
 (yas/load-directory "~/emacsd/bundles/clojure/snippets")
 
@@ -36,8 +42,5 @@
 
 (autoload 'paredit-mode "paredit" "Minor mode for pseudo-structurally editing Lisp code." t)
 (add-hook 'clojure-mode-hook          (lambda () (paredit-mode +1)))
-(add-hook 'emacs-lisp-mode-hook       (lambda () (paredit-mode +1)))
-(add-hook 'lisp-mode-hook             (lambda () (paredit-mode +1)))
-(add-hook 'lisp-interaction-mode-hook (lambda () (paredit-mode +1)))
 (add-hook 'slime-repl-mode-hook       (lambda () (paredit-mode +1)))
 (add-hook 'nrepl-mode-hook            (lambda () (paredit-mode +1)))
