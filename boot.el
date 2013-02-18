@@ -25,6 +25,7 @@
 
 (load-initializer "elisp")
 (load-initializer "path")
+(load-initializer "package")
 (load-initializer "kbd")
 (load-initializer "ido")
 (load-initializer "yasnippet")
