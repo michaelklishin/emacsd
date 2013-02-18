@@ -3,5 +3,5 @@
 ;; load bundle snippets
 (yas/load-directory "~/emacsd/bundles/golang/snippets")
 
-(add-hook 'go-mode (lambda ()
-                     (def compile-command "go build .")))
+(add-hook 'go-mode-hook (lambda ()
+                          (def compile-command "go build .")))
