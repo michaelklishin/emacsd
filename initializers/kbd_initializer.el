@@ -32,6 +32,10 @@
 (global-set-key (kbd "C-x C-i") 'imenu)
 (global-set-key (kbd "C-c C-o") 'browse-url-at-point)
 
+;; as in nREPL.el
+(global-set-key (kbd "M-,") 'pop-tag-mark)
+(global-set-key (kbd "C-M-.") 'tag-loop-continue)
+
 
 ;;; Buffers, files and directories management
 
