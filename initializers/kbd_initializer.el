@@ -34,7 +34,8 @@
 
 ;; as in nREPL.el
 (global-set-key (kbd "M-,") 'pop-tag-mark)
-(global-set-key (kbd "C-M-.") 'tag-loop-continue)
+(global-set-key (kbd "C-M-,") 'pop-tag-mark)
+(global-set-key (kbd "C-M-.") 'tags-loop-continue)
 
 
 ;;; Buffers, files and directories management
