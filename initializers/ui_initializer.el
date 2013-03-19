@@ -53,9 +53,5 @@
 ;; Full-screen mode on Cocoa
 ;;
 
-(global-set-key "\C-\c\C-f\C-s" 'ns-toggle-fullscreen)
-(when (fboundp 'ns-toggle-fullscreen)
-  (ns-toggle-fullscreen))
-
 (setq x-select-enable-clipboard t)
 (setq interprogram-paste-function 'x-selection-value)
