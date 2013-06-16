@@ -43,7 +43,7 @@
   (interactive)
   (indent-region (point-min) (point-max)))
 
-(add-hook 'before-save-hook 'untabify-buffer t)
+(add-hook 'before-save-hook 'delete-trailing-whitespace t)
 
 (defun wipe-out-all-buffers ()
   "Kills all active buffers"
