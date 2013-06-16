@@ -5,8 +5,7 @@
 (global-set-key (kbd "C-x \\") 'align-regexp)
 (global-set-key (kbd "M-/") 'hippie-expand)
 (global-set-key (kbd "C-c n") (lambda () (interactive)
-                                (delete-trailing-whitespace)
-                                (untabify-buffer)))
+                                (delete-trailing-whitespace)))
 
 (global-set-key (kbd "C-x :") 'ispell-buffer)
 (global-set-key (kbd "C-x ;") 'ispell-region)
@@ -39,6 +38,12 @@
 
 
 ;;; Buffers, files and directories management
+
+(defun buffer-mode
+  (buffer-or-string)
+  "Returns the major mode associated with a buffer."
+  (with-current-buffer buffer-or-string
+     major-mode))
 
 (defun switch-to-other-buffer ()
   (interactive)
