@@ -33,9 +33,10 @@
 
 (elbundle/load-elbundle "clojure")
 (elbundle/load-elbundle "erlang")
+(elbundle/load-elbundle "scala")
 
 (elbundle/load-elbundle "python")
-(elbundle/load-elbundle "scala")
+(elbundle/load-elbundle "csharp")
 
 (elbundle/load-elbundle "haskell")
 (elbundle/load-elbundle "javascript")
