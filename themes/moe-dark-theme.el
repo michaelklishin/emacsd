@@ -380,7 +380,7 @@ Moe, moe, kyun!")
 ;; fix wrong default face under GUI version Emacs
 (if window-system
     (progn
-      (set-background-color "#303030")
+      (set-background-color "#101010")
       (set-foreground-color "#c6c6c6")))
 
 (provide-theme 'moe-dark)
