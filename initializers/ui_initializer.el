@@ -14,7 +14,7 @@
 
 ;;
 ;; Widgets, controls, menus, toolbars
-;; 
+;;
 
 ;; no damn scrollbar, toolbar
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
@@ -37,17 +37,17 @@
 (add-to-list 'load-path "~/emacsd/bundles/color_themes")
 (require 'color-theme)
 
-(load "themes/twilight-theme")
-;; (load "themes/vibrant-ink-theme")
+;; (load "themes/twilight-theme")
+(load "themes/vibrant-ink-theme")
 ;; (load "themes/zenburn-ng-theme")
 ;; (load "themes/solarized")
+;; (load "themes/moe-dark-theme")
 
-(color-theme-twilight)
-;; (color-theme-vibrant-ink)
+;; (color-theme-twilight)
+(color-theme-vibrant-ink)
 ;; (color-theme-zenburn)
 ;; (color-theme-solarized-dark)
 ;; (color-theme-solarized-light)
-
 
 ;;
 ;; Full-screen mode on Cocoa
