@@ -16,3 +16,5 @@
 (add-to-list 'auto-mode-alist '("Vagrantfile$" . ruby-mode))
 (add-to-list 'auto-mode-alist '("config.ru$" . ruby-mode))
 (add-to-list 'auto-mode-alist '("*ruby-scratch*" . ruby-mode))
+
+(setq ruby-deep-indent-paren nil)
