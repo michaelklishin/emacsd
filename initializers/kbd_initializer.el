@@ -36,6 +36,12 @@
 (global-set-key (kbd "C-M-,") 'pop-tag-mark)
 (global-set-key (kbd "C-M-.") 'tags-loop-continue)
 
+(global-set-key [home] 'beginning-of-buffer)
+(global-set-key [end] 'end-of-buffer)
+(global-set-key (kbd "s-<left>") 'beginning-of-line)
+(global-set-key (kbd "s-<right>") 'end-of-line)
+(global-set-key (kbd "s-<up>") 'scroll-down)
+(global-set-key (kbd "s-<down>") 'scroll-up)
 
 ;;; Buffers, files and directories management
 
