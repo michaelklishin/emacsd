@@ -25,3 +25,4 @@
 
 
 (add-to-list 'auto-mode-alist '("\\.src$" . erlang-mode))
+(add-to-list 'auto-mode-alist '("rabbitmq.config" . erlang-mode))
