@@ -21,7 +21,7 @@
 
 ;; display tabs as 2 whitespaces
 (setq tab-width 2)
-;; no more tabs indentation
+;; by default indentat with spaces
 (setq indent-tabs-mode nil)
 
 ;;
