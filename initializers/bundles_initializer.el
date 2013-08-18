@@ -28,6 +28,7 @@
 (elbundle/load-elbundle "text")
 (elbundle/load-elbundle "markdown")
 (elbundle/load-elbundle "textile")
+(elbundle/load-elbundle "asciidoc")
 (elbundle/load-elbundle "git")
 (elbundle/load-elbundle "hg")
 
