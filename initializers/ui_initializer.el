@@ -48,6 +48,7 @@
 ;; (color-theme-zenburn)
 ;; (color-theme-solarized-dark)
 ;; (color-theme-solarized-light)
+;; (load "themes/purple-haze-theme")
 
 ;;
 ;; Full-screen mode on Cocoa

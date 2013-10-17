@@ -20,6 +20,7 @@
 (add-hook 'clojure-mode-hook   (lambda ()
                                  (highlight-parentheses-mode +1)
                                  (setq buffer-save-without-query t)))
+(add-hook 'clojure-mode-hook 'untabify-buffer t)
 
 
 ;;
@@ -44,3 +45,4 @@
 (add-hook 'clojure-mode-hook          (lambda () (paredit-mode +1)))
 (add-hook 'slime-repl-mode-hook       (lambda () (paredit-mode +1)))
 (add-hook 'nrepl-mode-hook            (lambda () (paredit-mode +1)))
+

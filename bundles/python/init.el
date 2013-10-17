@@ -8,3 +8,5 @@
 
 ;; load bundle snippets
 (yas/load-directory "~/emacsd/bundles/python/snippets")
+
+(add-hook 'python-mode-hook 'untabify-buffer t)

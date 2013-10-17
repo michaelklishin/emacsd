@@ -21,7 +21,7 @@
 
 ;; display tabs as 2 whitespaces
 (setq tab-width 2)
-;; no more tabs indentation
+;; by default indentat with spaces
 (setq indent-tabs-mode nil)
 
 ;;
@@ -43,7 +43,7 @@
   (interactive)
   (indent-region (point-min) (point-max)))
 
-(add-hook 'before-save-hook 'delete-trailing-whitespace t)
+;; (add-hook 'before-save-hook 'delete-trailing-whitespace t)
 
 (defun wipe-out-all-buffers ()
   "Kills all active buffers"

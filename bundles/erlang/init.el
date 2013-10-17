@@ -26,3 +26,6 @@
 
 (add-to-list 'auto-mode-alist '("\\.src$" . erlang-mode))
 (add-to-list 'auto-mode-alist '("rabbitmq.config" . erlang-mode))
+
+(add-hook 'erlang-mode-hook 'untabify-buffer t)
+(add-hook 'erlang-mode-hook 'highlight-parentheses-mode)

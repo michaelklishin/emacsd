@@ -6,5 +6,5 @@
 
 (add-hook 'csharp-mode-hook
           (lambda ()
-            (setq indent-tabs-mode t)
+            (setq indent-tabs-mode nil)
             (setq tab-width 8)))

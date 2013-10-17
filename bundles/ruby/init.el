@@ -18,3 +18,5 @@
 (add-to-list 'auto-mode-alist '("*ruby-scratch*" . ruby-mode))
 
 (setq ruby-deep-indent-paren nil)
+
+(add-hook 'ruby-mode-hook 'untabify-buffer t)
