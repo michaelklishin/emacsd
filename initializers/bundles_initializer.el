@@ -70,7 +70,7 @@
 (elbundle/load-elbundle "c")
 (elbundle/load-elbundle "cpp")
 (elbundle/load-elbundle "golang")
-(elbundle/load-elbundle "rustlang")
+;; (elbundle/load-elbundle "rustlang")
 (elbundle/load-elbundle "sql")
 
 ;; (elbundle/load-elbundle "ocaml")
