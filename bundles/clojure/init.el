@@ -17,6 +17,8 @@
 (yas/load-directory "~/emacsd/bundles/clojure/snippets")
 
 (add-to-list 'auto-mode-alist '("\\.clj$" . clojure-mode))
+(add-to-list 'auto-mode-alist '("\\.cljs$" . clojure-mode))
+(add-to-list 'auto-mode-alist '("\\.clx$" . clojure-mode))
 (add-hook 'clojure-mode-hook   (lambda ()
                                  (highlight-parentheses-mode +1)
                                  (setq buffer-save-without-query t)))
