@@ -28,6 +28,7 @@
 (load-initializer "kbd")
 (load-initializer "ido")
 (load-initializer "yasnippet")
+(load-initializer "package")
 (load-initializer "bundles")
 (load-initializer "scratches")
 (load-initializer "ui")
