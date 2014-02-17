@@ -11,7 +11,7 @@
 (setq x-select-enable-clipboard t)
 (setq interprogram-paste-function 'x-selection-value)
 
-;; Alias for quer-replace-regexp
+;; Alias for query-replace-regexp
 (defalias 'qrr 'query-replace-regexp)
 
 
