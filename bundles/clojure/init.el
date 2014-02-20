@@ -54,4 +54,3 @@
 
 (autoload 'paredit-mode "paredit" "Minor mode for pseudo-structurally editing Lisp code." t)
 (add-hook 'clojure-mode-hook          (lambda () (paredit-mode +1)))
-(add-hook 'slime-repl-mode-hook       (lambda () (paredit-mode +1)))
