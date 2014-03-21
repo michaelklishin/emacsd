@@ -19,6 +19,7 @@
 (add-to-list 'auto-mode-alist '("\\.cljs$" . clojure-mode))
 (add-to-list 'auto-mode-alist '("\\.clx$" . clojure-mode))
 (add-to-list 'auto-mode-alist '("\\.edn$" . clojure-mode))
+(add-to-list 'auto-mode-alist '("config\\.clj$" . clojure-mode))
 (add-hook 'clojure-mode-hook   (lambda ()
                                  (highlight-parentheses-mode +1)
                                  (setq buffer-save-without-query t)))
