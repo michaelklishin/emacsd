@@ -10,4 +10,6 @@
             ;; opening brace in the consequent block of an if
             ;; statement)
             (c-set-offset 'substatement-open 0)
-            (setq indent-tabs-mode nil)))
+            (setq indent-tabs-mode nil)
+            (highlight-parentheses-mode)
+            (paredit-mode)))
