@@ -11,5 +11,4 @@
             ;; statement)
             (c-set-offset 'substatement-open 0)
             (setq indent-tabs-mode nil)
-            (highlight-parentheses-mode)
-            (paredit-mode)))
+            (highlight-parentheses-mode)))
