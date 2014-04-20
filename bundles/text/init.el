@@ -11,7 +11,7 @@
 (setq x-select-enable-clipboard t)
 (setq interprogram-paste-function 'x-selection-value)
 
-;; Alias for quer-replase-regexp
+;; Alias for query-replace-regexp
 (defalias 'qrr 'query-replace-regexp)
 
 
@@ -21,7 +21,8 @@
 
 ;; display tabs as 2 whitespaces
 (setq tab-width 2)
-;; by default indentat with spaces
+;; by default indent with spaces
+(setq-default indent-tabs-mode nil)
 (setq indent-tabs-mode nil)
 
 ;;
