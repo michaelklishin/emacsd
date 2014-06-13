@@ -27,7 +27,7 @@ Add the following code to you ~/.emacs
 
 Released under the MIT license.
 
-* (c) Michael S. Klishin, 2007-2013
+* (c) Michael S. Klishin, 2007-2014
 * (c) Dmitriy Dzema, 2009-2011
 
 
