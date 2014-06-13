@@ -30,9 +30,11 @@
 ;; CIDER
 ;;
 
-(unless (package-installed-p 'cider)
-  (package-refresh-contents)
-  (package-install 'cider))
+;; (unless (package-installed-p 'cider)
+;;   (package-refresh-contents)
+;;   (package-install 'cider))
+
+(require 'cider)
 
 
 ;;
