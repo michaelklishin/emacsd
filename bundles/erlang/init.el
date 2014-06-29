@@ -6,10 +6,10 @@
 (setq erlang-root-dir     (car (file-expand-wildcards "/usr/local/Cellar/erlang/R*")))
 
 (defvar erlang-man-dirs
-  '(("Man - Commands" "/share/man/man1" t)
-    ("Man - Modules" "/share/man/man3" t)
-    ("Man - Files" "/share/man/man4" t)
-    ("Man - Applications" "/share/man/man6" t)))
+  '(("Man - Commands" "/lib/erlang/man/man1" t)
+    ("Man - Modules" "/lib/erlang/man/man3" t)
+    ("Man - Files" "/lib/erlang/man/man4" t)
+    ("Man - Applications" "/lib/erlang/man/man6" t)))
 
 (require 'erlang-start)
 (require 'erlang)
