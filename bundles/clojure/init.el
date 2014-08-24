@@ -35,7 +35,9 @@
 ;;   (package-install 'cider))
 
 (require 'cider)
-
+(add-hook 'cider-mode-hook   (lambda ()
+                               (highlight-parentheses-mode +1)
+                               (paredit-mode)))
 
 ;;
 ;; hl-p
