@@ -74,7 +74,7 @@
 (elbundle/load-elbundle "sql")
 
 ;; (elbundle/load-elbundle "ocaml")
-;; (elbundle/load-elbundle "fsharp")
+(elbundle/load-elbundle "fsharp")
 (elbundle/load-elbundle "perl")
 
 ;; (elbundle/load-elbundle "slime")
