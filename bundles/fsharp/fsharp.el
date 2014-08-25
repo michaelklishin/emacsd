@@ -313,7 +313,7 @@ whole string."
   (interactive)
   (let ((name (buffer-file-name)))
     (if (string-match "^\\(.*\\)\\.\\(fs\\|fsi\\)$" name)
-        (shell-command (concat (match-string 1 name) ".exe")))))
+        (shell-command (concat "mono" " " (match-string 1 name) ".exe")))))
 
 (defun fsharp-version ()
   "Echo the current version of `fsharp-mode' in the minibuffer."
