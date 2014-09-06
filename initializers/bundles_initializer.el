@@ -45,16 +45,16 @@
 
 (elbundle/load-elbundle "ruby")
 (elbundle/load-elbundle "linkify")
-(elbundle/load-elbundle "rspec")
-(elbundle/load-elbundle "cucumber")
-(elbundle/load-elbundle "rake")
+;; (elbundle/load-elbundle "rspec")
+;; (elbundle/load-elbundle "cucumber")
+;; (elbundle/load-elbundle "rake")
 
 (elbundle/load-elbundle "emacs-lisp")
 (elbundle/load-elbundle "emacs")
 (elbundle/load-elbundle "org")
 
 (elbundle/load-elbundle "yaml")
-(elbundle/load-elbundle "haml")
+;; (elbundle/load-elbundle "haml")
 (elbundle/load-elbundle "xml")
 (elbundle/load-elbundle "mustache")
 
@@ -77,6 +77,4 @@
 (elbundle/load-elbundle "fsharp")
 (elbundle/load-elbundle "perl")
 
-;; (elbundle/load-elbundle "slime")
-;; (elbundle/load-elbundle "joxa")
 (elbundle/load-elbundle "elixir")
