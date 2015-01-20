@@ -5,3 +5,5 @@
 
 (setq inferior-fsharp-program "fsharpi")
 (setq fsharp-compiler "fsharpc")
+
+(defalias 'fun 'run-fsharp)
