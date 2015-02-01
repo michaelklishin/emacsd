@@ -31,6 +31,7 @@
     ("Module"        "module"        erlang-skel-module)
     ("Author"        "author"        erlang-skel-author)
     ("Function"      "function"      erlang-skel-function)
+    ("Spec"          "spec"          erlang-skel-spec)
     ()
     ("Small Header"  "small-header"
      erlang-skel-small-header erlang-skel-header)
@@ -54,6 +55,8 @@
      erlang-skel-gen-event erlang-skel-header)
     ("gen_fsm" "gen-fsm"
      erlang-skel-gen-fsm erlang-skel-header)
+    ("wx_object" "wx-object"
+     erlang-skel-wx-object erlang-skel-header)
     ("Library module" "gen-lib"
      erlang-skel-lib erlang-skel-header)
     ("Corba callback" "gen-corba-cb"
@@ -109,32 +112,32 @@ include separators of the form %%--...")
 ;; Expression templates:
 (defvar erlang-skel-case
   '((erlang-skel-skip-blank) o >
-    "case " p " of" n> p "_ ->" n> p "ok" n> "end" p)
+    "case " p " of" n> p "_ ->" n> p "ok" n "end" > p)
   "*The skeleton of a `case' expression.
 Please see the function `tempo-define-template'.")
 
 (defvar erlang-skel-if
   '((erlang-skel-skip-blank) o >
-    "if"  n> p " ->" n> p "ok" n> "end" p)
+    "if"  n> p " ->" n> p "ok" n "end" > p)
   "The skeleton of an `if' expression.
 Please see the function `tempo-define-template'.")
 
 (defvar erlang-skel-receive
   '((erlang-skel-skip-blank) o >
-    "receive" n> p "_ ->" n> p "ok" n> "end" p)
+    "receive" n> p "_ ->" n> p "ok" n "end" > p)
   "*The skeleton of a `receive' expression.
 Please see the function `tempo-define-template'.")
 
 (defvar erlang-skel-receive-after
   '((erlang-skel-skip-blank) o >
-    "receive" n> p "_ ->" n> p "ok" n> "after " p "T ->" n>
-    p "ok" n> "end" p)
+    "receive" n> p "_ ->" n> p "ok" n "after " > p "T ->" n>
+    p "ok" n "end" > p)
   "*The skeleton of a `receive' expression with an `after' clause.
 Please see the function `tempo-define-template'.")
 
 (defvar erlang-skel-receive-loop
   '(& o "loop(" p ") ->" n> "receive" n> p "_ ->" n>
-      "loop(" p ")" n> "end.")
+      "loop(" p ")" n "end." >)
   "*The skeleton of a simple `receive' loop.
 Please see the function `tempo-define-template'.")
 
@@ -147,6 +150,10 @@ Please see the function `tempo-define-template'.")
     "*The template of a function skeleton.
 Please see the function `tempo-define-template'.")
 
+(defvar erlang-skel-spec
+  '("-spec " (erlang-skel-get-function-name) "(" (erlang-skel-get-function-args) ") -> undefined.")
+    "*The template of a -spec for the function following point.
+Please see the function `tempo-define-template'.")
 
 ;; Attribute templates
 
@@ -256,8 +263,8 @@ Please see the function `tempo-define-template'.")
     "loop(From) ->" n>
     "receive" n>
     p "_ ->" n>
-    "loop(From)" n>
-    "end." n
+    "loop(From)" n
+    "end." > n
     )
   "*Template of a small server.
 Please see the function `tempo-define-template'.")
@@ -291,8 +298,8 @@ Please see the function `tempo-define-template'.")
     "{ok, Pid} ->" n>
     "{ok, Pid};" n>
     "Error ->" n>
-    "Error" n>
-    "end." n
+    "Error" n
+    "end." > n
     n
     (erlang-skel-separator-start 2)
     "%% @private" n
@@ -421,8 +428,8 @@ Please see the function `tempo-define-template'.")
     "{ok, Pid} ->" n>
     "{ok, Pid, #state{}};" n>
     "Error ->" n>
-    "Error" n>
-    "end." n
+    "Error" n
+    "end." > n
     n
     (erlang-skel-separator-start 2)
     "%% @private" n
@@ -457,7 +464,7 @@ Please see the function `tempo-define-template'.")
     "handle_info/2," n>
     "terminate/2, code_change/3])." n n
 
-    "-define(SERVER, ?MODULE). " n n
+    "-define(SERVER, ?MODULE)." n n
 
     "-record(state, {})." n n
 
@@ -572,12 +579,12 @@ Please see the function `tempo-define-template'.")
     "-export([init/1, handle_event/2, handle_call/2, " n>
     "handle_info/2, terminate/2, code_change/3])." n n
 
-    "-define(SERVER, ?MODULE). " n n
+    "-define(SERVER, ?MODULE)." n n
 
     "-record(state, {})." n n
 
     (erlang-skel-double-separator-start 3)
-    "%%% gen_event callbacks" n
+    "%%% API" n
     (erlang-skel-double-separator-end 3) n
     (erlang-skel-separator-start 2)
     "%% @doc" n
@@ -849,6 +856,137 @@ Please see the function `tempo-define-template'.")
     (erlang-skel-double-separator-end 3)
     )
   "*The template of a gen_fsm.
+Please see the function `tempo-define-template'.")
+
+(defvar erlang-skel-wx-object
+  '((erlang-skel-include erlang-skel-large-header)
+    "-behaviour(wx_object)." n n
+
+    "-include_lib(\"wx/include/wx.hrl\")." n n
+
+    "%% API" n
+    "-export([start_link/0])." n n
+
+    "%% wx_object callbacks" n
+    "-export([init/1, handle_call/3, handle_cast/2, "
+    "handle_info/2," n>
+    "handle_event/2, terminate/2, code_change/3])." n n
+
+    "-record(state, {})." n n
+
+    (erlang-skel-double-separator-start 3)
+    "%%% API" n
+    (erlang-skel-double-separator-end 3) n
+    (erlang-skel-separator-start 2)
+    "%% @doc" n
+    "%% Starts the server" n
+    "%%" n
+    "%% @spec start_link() -> wxWindow()" n
+    (erlang-skel-separator-end 2)
+    "start_link() ->" n>
+    "wx_object:start_link(?MODULE, [], [])." n
+    n
+    (erlang-skel-double-separator-start 3)
+    "%%% wx_object callbacks" n
+    (erlang-skel-double-separator-end 3)
+    n
+    (erlang-skel-separator-start 2)
+    "%% @private" n
+    "%% @doc" n
+    "%% Initializes the server" n
+    "%%" n
+    "%% @spec init(Args) -> {wxWindow(), State} |" n
+    "%%                     {wxWindow(), State, Timeout} |" n
+    "%%                     ignore |" n
+    "%%                     {stop, Reason}" n
+    (erlang-skel-separator-end 2)
+    "init([]) ->" n>
+    "wx:new()," n>
+    "Frame = wxFrame:new()," n>
+    "{Frame, #state{}}." n
+    n
+    (erlang-skel-separator-start 2)
+    "%% @private" n
+    "%% @doc" n
+    "%% Handling events" n
+    "%%" n
+    "%% @spec handle_event(wx{}, State) ->" n
+    "%%                                   {noreply, State} |" n
+    "%%                                   {noreply, State, Timeout} |" n
+    "%%                                   {stop, Reason, State}" n
+    (erlang-skel-separator-end 2)
+    "handle_event(#wx{}, State) ->" n>
+    "{noreply, State}." n
+    n
+    (erlang-skel-separator-start 2)
+    "%% @private" n
+    "%% @doc" n
+    "%% Handling call messages" n
+    "%%" n
+    "%% @spec handle_call(Request, From, State) ->" n
+    "%%                                   {reply, Reply, State} |" n
+    "%%                                   {reply, Reply, State, Timeout} |" n
+    "%%                                   {noreply, State} |" n
+    "%%                                   {noreply, State, Timeout} |" n
+    "%%                                   {stop, Reason, Reply, State} |" n
+    "%%                                   {stop, Reason, State}" n
+    (erlang-skel-separator-end 2)
+    "handle_call(_Request, _From, State) ->" n>
+    "Reply = ok," n>
+    "{reply, Reply, State}." n
+    n
+    (erlang-skel-separator-start 2)
+    "%% @private" n
+    "%% @doc" n
+    "%% Handling cast messages" n
+    "%%" n
+    "%% @spec handle_cast(Msg, State) -> {noreply, State} |" n
+    "%%                                  {noreply, State, Timeout} |" n
+    "%%                                  {stop, Reason, State}" n
+    (erlang-skel-separator-end 2)
+    "handle_cast(_Msg, State) ->" n>
+    "{noreply, State}." n
+    n
+    (erlang-skel-separator-start 2)
+    "%% @private" n
+    "%% @doc" n
+    "%% Handling all non call/cast messages" n
+    "%%" n
+    "%% @spec handle_info(Info, State) -> {noreply, State} |" n
+    "%%                                   {noreply, State, Timeout} |" n
+    "%%                                   {stop, Reason, State}" n
+    (erlang-skel-separator-end 2)
+    "handle_info(_Info, State) ->" n>
+    "{noreply, State}." n
+    n
+    (erlang-skel-separator-start 2)
+    "%% @private" n
+    "%% @doc" n
+    "%% This function is called by a wx_object when it is about to" n
+    "%% terminate. It should be the opposite of Module:init/1 and do any" n
+    "%% necessary cleaning up. When it returns, the wx_object terminates" n
+    "%% with Reason. The return value is ignored." n
+    "%%" n
+    "%% @spec terminate(Reason, State) -> void()" n
+    (erlang-skel-separator-end 2)
+    "terminate(_Reason, _State) ->" n>
+    "ok." n
+    n
+    (erlang-skel-separator-start 2)
+    "%% @private" n
+    "%% @doc" n
+    "%% Convert process state when code is changed" n
+    "%%" n
+    "%% @spec code_change(OldVsn, State, Extra) -> {ok, NewState}" n
+    (erlang-skel-separator-end 2)
+    "code_change(_OldVsn, State, _Extra) ->" n>
+    "{ok, State}." n
+    n
+    (erlang-skel-double-separator-start 3)
+    "%%% Internal functions" n
+    (erlang-skel-double-separator-end 3)
+    )
+  "*The template of a generic server.
 Please see the function `tempo-define-template'.")
 
 (defvar erlang-skel-lib
@@ -1545,6 +1683,16 @@ The first character of DD is space if the value is less than 10."
             (string-to-int (substring date 8 10))
             (substring date 4 7)
             (substring date -4))))
+
+(defun erlang-skel-get-function-name ()
+  (save-excursion
+    (erlang-beginning-of-function -1)
+    (erlang-get-function-name)))
+
+(defun erlang-skel-get-function-args ()
+  (save-excursion
+    (erlang-beginning-of-function -1)
+    (erlang-get-function-arguments)))
 
 ;; Local variables:
 ;; coding: iso-8859-1
