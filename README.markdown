@@ -18,7 +18,7 @@ First, make sure you install the following pre-requisites with
  * `git-commit-modes`
  * `git-rebase-modes` 
 
-Clone this repo to ~/emacsd.
+Clone this repo to `~/emacsd`, `touch ~/emacsd/custom-variables.el`.
 
 Add the following code to you ~/.emacs
 
@@ -28,6 +28,8 @@ Add the following code to you ~/.emacs
     (add-to-list 'load-path emacsd-dir)
 
     (load "boot")
+
+
 
 
 ## License & Copyright
