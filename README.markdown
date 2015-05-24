@@ -11,6 +11,13 @@ Many parts of this codebase need refactoring, documentation, upgrades to various
 
 ## Installation
 
+First, make sure you install the following pre-requisites with
+`M-x package-install [name]`:
+
+ * `pkg-info`
+ * `git-commit-modes`
+ * `git-rebase-modes` 
+
 Clone this repo to ~/emacsd.
 
 Add the following code to you ~/.emacs
@@ -29,7 +36,3 @@ Released under the MIT license.
 
 * (c) Michael S. Klishin, 2007-2015
 * (c) Dmitriy Dzema, 2009-2011
-
-
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/michaelklishin/emacsd/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
-
