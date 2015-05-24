@@ -1,7 +1,7 @@
 # What is emacsd
 
 This is a yet another collection of Emacs modes, settings, extensions, color themes
-and everything in between. It has been accumulated over the period of 5 years
+and everything in between. It has been accumulated over the period of 8 years
 by Michael Klishin, used and modified by several other smart people and supports
 machine-specific settings.
 
