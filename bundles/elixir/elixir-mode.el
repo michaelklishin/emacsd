@@ -1,14 +1,17 @@
 ;;; elixir-mode.el --- Major mode for editing Elixir files
 
-;; Copyright 2011 secondplanet
-;;           2013 Andreas Fuchs, Samuel Tonini
+;; Copyright 2011-2015 secondplanet
+;;           2013-2015 Samuel Tonini, Matt DeBoard, Andreas Fuchs
 ;; Authors: Humza Yaqoob,
 ;;          Andreas Fuchs <asf@boinkor.net>,
+;;          Matt DeBoard
 ;;          Samuel Tonini <tonini.samuel@gmail.com>
+
 ;; URL: https://github.com/elixir-lang/emacs-elixir
 ;; Created: Mon Nov 7 2011
 ;; Keywords: languages elixir
-;; Version: 1.3.0
+;; Version: 2.3.1
+;; Package-Requires: ((emacs "24") (pkg-info "0.4"))
 
 ;; This file is not a part of GNU Emacs.
 
@@ -28,413 +31,407 @@
 
 ;;; Commentary:
 
-;; Provides font-locking, indentation and navigation support
-;; for the Elixir programming language.
-;;
-;;
-;;  Manual Installation:
-;;
-;;   (add-to-list 'load-path "~/path/to/emacs-elixir/")
-;;   (require 'elixir-mode)
-;;
-;;  Interesting variables are:
-;;
-;;      `elixir-compiler-command`
-;;
-;;          Path to the executable <elixirc> command
-;;
-;;      `elixir-iex-command`
-;;
-;;          Path to the executable <iex> command
-;;
-;;      `elixir-mode-highlight-operators`
-;;
-;;          Option for whether or not to highlight operators.
-;;
-;;      `elixir-mode-cygwin-paths`
-;;
-;;          Use Cygwin style paths on Windows operating systems.
-;;
-;;      `elixir-mode-cygwin-prefix`
-;;
-;;          Cygwin prefix
-;;
-;;  Major commands are:
-;;
-;;       M-x elixir-mode
-;;
-;;           Switches to elixir-mode.
-;;
-;;       M-x elixir-cos-mode
-;;
-;;           Applies compile-on-save minor mode.
-;;
-;;       M-x elixir-mode-compile-file
-;;
-;;           Compile and save current file.
-;;
-;;       M-x elixir-mode-iex
-;;
-;;           Launch <iex> inside Emacs.
-;;           Use "C-u" (universal-argument) to run <iex> with some additional arguments.
-;;
-;;       M-x elixir-mode-eval-on-region
-;;
-;;           Evaluates the Elixir code on the marked region.
-;;           This is bound to "C-c ,r" while in `elixir-mode'.
-;;
-;;       M-x elixir-mode-eval-on-current-line
-;;
-;;           Evaluates the Elixir code on the current line.
-;;           This is bound to "C-c ,c" while in `elixir-mode'.
-;;
-;;       M-x elixir-mode-eval-on-current-buffer
-;;
-;;           Evaluates the Elixir code on the current buffer.
-;;           This is bound to "C-c ,b" while in `elixir-mode'.
-;;
-;;       M-x elixir-mode-string-to-quoted-on-region
-;;
-;;           Get the representation of the expression on the marked region.
-;;           This is bound to "C-c ,a" while in `elixir-mode'.
-;;
-;;       M-x elixir-mode-string-to-quoted-on-current-line
-;;
-;;           Get the representation of the expression on the current line.
-;;           This is bound to "C-c ,l" while in `elixir-mode'.
-;;
-;;       M-x elixir-mode-opengithub
-;;
-;;           Open the GitHub page of the Elixir repository.
-;;
-;;       M-x elixir-mode-open-elixir-home
-;;
-;;           Open the Elixir website.
-;;
-;;       M-x elixir-mode-open-docs-master
-;;
-;;           Open the Elixir documentation for the master.
-;;
-;;       M-x elixir-mode-open-docs-stable
-;;
-;;           Open the Elixir documentation for the latest stable release.
-;;
-;;       M-x elixir-mode-run-tests
-;;
-;;           Run ERT tests for `elixir-mode`.
-;;
-;;       M-x elixir-mode-show-version
-;;
-;;           Print `elixir-mode` version.
-;;
-;;   Also check out the customization group
-;;
-;;       M-x customize-group RET elixir RET
-;;
-;;   If you use the customization group to set variables like
-;;   `elixir-compiler-command' or `elixir-iex-command', make sure the path to
-;;   "elixir-mode.el" is present in the `load-path' *before* the
-;;   `custom-set-variables' is executed in your .emacs file.
-;;
+;;  Provides font-locking, indentation and navigation support
+;;  for the Elixir programming language.
 
 ;;; Code:
 
-(require 'comint)       ; for interactive REPL
-(require 'easymenu)     ; for menubar features
+(require 'easymenu)           ; Elixir Mode menu definition
+(require 'elixir-smie)        ; Syntax and indentation support
+(require 'pkg-info)           ; Display Elixir Mode package version
 
-(require 'elixir-smie)  ; syntax and indentation support
+(defgroup elixir nil
+  "Major mode for editing Elixir code."
+  :prefix "elixir-"
+  :group 'languages
+  :link '(url-link :tag "Github" "https://github.com/elixir-lang/emacs-elixir")
+  :link '(emacs-commentary-link :tag "Commentary" "elixir-mode"))
 
-(defvar elixir-mode--version "1.3.0")
-
-(defvar elixir-mode--website-url
-  "http://elixir-lang.org")
+(defvar elixir-mode-website-url "http://elixir-lang.org"
+  "Official url of Elixir programming website.")
 
 (defvar elixir-mode-hook nil)
 
 (defvar elixir-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-c ,r") 'elixir-mode-eval-on-region)
-    (define-key map (kbd "C-c ,c") 'elixir-mode-eval-on-current-line)
-    (define-key map (kbd "C-c ,b") 'elixir-mode-eval-on-current-buffer)
-    (define-key map (kbd "C-c ,a") 'elixir-mode-string-to-quoted-on-region)
-    (define-key map (kbd "C-c ,l") 'elixir-mode-string-to-quoted-on-current-line)
     map)
   "Keymap used in `elixir-mode'.")
 
 (defvar elixir-imenu-generic-expression
-  '(("Modules" "^\\s-*defmodule[ \n\t]+\\([A-Z][A-Za-z0-9._]+\\)\\s-+do.*$" 1)
-    ("Public Functions" "^\\s-*def[ \n\t]+\\([a-z0-9_]+\\)\\(([^)]*)\\)*[ \t\n]+do.*" 1)
-    ("Private Functions" "^\\s-*defp[ \n\t]+\\([a-z0-9_]+\\)\\(([^)]*)\\)*[ \t\n]+do.*" 1)
-    ("Public Macros" "^\\s-*defmacro[ \n\t]+\\([a-z0-9_]+\\)\\(([^)]*)\\)*[ \t\n]+do.*" 1)
-    ("Private Macros" "^\\s-*defmacrop[ \n\t]+\\([a-z0-9_]+\\)\\(([^)]*)\\)*[ \t\n]+do.*" 1)
-    ("Delegates" "^\\s-*defdelegate[ \n\t]+\\([a-z0-9_]+\\)\\(([^)]*)\\)*[ \t\n]+do.*" 1)
-    ("Overridables" "^\\s-*defoverridable[ \n\t]+\\([a-z0-9_]+\\)\\(([^)]*)\\)*[ \t\n]+do.*" 1)
-    ("Tests" "^\\s-*test[ \t\n]+\"?\\(:?[a-z0-9_@+() \t-]+\\)\"?[ \t\n]+do.*" 1))
+  '(("Modules" "^\\s-*defmodule[ \n\t]+\\([A-Z][A-Za-z0-9._]+\\)\\s-+.*$" 1)
+    ("Public Functions" "^\\s-*def[ \n\t]+\\([a-z0-9_!\\?]+\\)\\(([^)]*)\\)*.*" 1)
+    ("Private Functions" "^\\s-*defp[ \n\t]+\\([a-z0-9_!\\?]+\\)\\(([^)]*)\\)*.*" 1)
+    ("Public Macros" "^\\s-*defmacro[ \n\t]+\\([a-z0-9_!\\?]+\\)\\(([^)]*)\\)*.*" 1)
+    ("Private Macros" "^\\s-*defmacrop[ \n\t]+\\([a-z0-9_!\\?]+\\)\\(([^)]*)\\)*.*" 1)
+    ("Delegates" "^\\s-*defdelegate[ \n\t]+\\([a-z0-9_]+\\)\\(([^)]*)\\)*.*" 1)
+    ("Overridables" "^\\s-*defoverridable[ \n\t]+\\([a-z0-9_]+\\)\\(([^)]*)\\)*.*" 1)
+    ("Tests" "^\\s-*test[ \t\n]+\"?\\(:?[a-z0-9_@+() \t-]+\\)\"?[ \t\n]+.*" 1))
   "Imenu pattern for `elixir-mode'.")
-
-(defgroup elixir nil
-  "Elixir major mode."
-  :group 'languages)
-
-(defcustom elixir-compiler-command "elixirc"
-  "Elixir mode command to compile code.  Must be in your path."
-  :type 'string
-  :group 'elixir)
-
-(defcustom elixir-mode-command "elixir"
-  "The command for elixir."
-  :type 'string
-  :group 'elixir)
-
-(defcustom elixir-iex-command "iex"
-  "Elixir mode command for interactive REPL.  Must be in your path."
-  :type 'string
-  :group 'elixir)
-
-(defcustom elixir-mode-highlight-operators t
-  "Elixir mode option for whether or not to highlight operators."
-  :type 'boolean
-  :group 'elixir)
-
-(defcustom elixir-mode-cygwin-paths t
-  "Elixir mode use Cygwin style paths on Windows operating systems."
-  :type 'boolean
-  :group 'elixir)
-
-(defcustom elixir-mode-cygwin-prefix "/cygdrive/C"
-  "Elixir mode Cygwin prefix."
-  :type 'string
-  :group 'elixir)
-
-(defvar elixir-mode--eval-filename "elixir-mode-tmp-eval-file.exs")
-
-(defvar elixir-mode-define-names
-  '("def"
-    "defdelegate"
-    "defmacro"
-    "defmacrop"
-    "defoverridable"
-    "defp"
-    "defmacrop")
-  "Elixir mode def-like keywords.")
-(defvar elixir-mode-keyword-names
-  '("->"
-    "bc"
-    "lc"
-    "in"
-    "inbits"
-    "inlist"
-    "quote"
-    "unquote"
-    "unquote_splicing"
-    "var"
-    "do"
-    "after"
-    "for"
-    "def"
-    "defdelegate"
-    "defimpl"
-    "defmacro"
-    "defmacrop"
-    "defmodule"
-    "defoverridable"
-    "defp"
-    "defprotocol"
-    "defrecord"
-    "defstruct"
-    "destructure"
-    "alias"
-    "require"
-    "import"
-    "use"
-    "if"
-    "true"
-    "false"
-    "when"
-    "case"
-    "cond"
-    "throw"
-    "then"
-    "else"
-    "elsif"
-    "try"
-    "catch"
-    "rescue"
-    "fn"
-    "function"
-    "receive"
-    "end")
-  "Elixir mode keywords.")
-(defvar elixir-mode-module-names
-  '("Actor"
-    "Base"
-    "Behavior"
-    "Binary"
-    "Bitwise"
-    "Builtin"
-    "Elixir"
-    "Code"
-    "EEx"
-    "Enum"
-    "ExUnit"
-    "Exception"
-    "File"
-    "GenServer"
-    "Function"
-    "GenServer"
-    "GenTCP"
-    "HashDict"
-    "IO"
-    "Keyword"
-    "List"
-    "Math"
-    "Module"
-    "Node"
-    "OptionParser"
-    "OrdDict"
-    "Port"
-    "Process"
-    "Record"
-    "Regexp"
-    "System"
-    "Tuple"
-    "URI"
-    "UnboundMethod")
-  "Elixir mode modules.")
-(defvar elixir-mode-builtin-names
-  '("Erlang"
-    "__MODULE__"
-    "__LINE__"
-    "__FILE__"
-    "__ENV__")
-  "Elixir mode builtins.")
-(defvar elixir-mode-operator-names
-  '("+"
-    "++"
-    "<>"
-    "-"
-    "/"
-    "*"
-    "div"
-    "rem"
-    "=="
-    "!="
-    "<="
-    "<"
-    ">="
-    ">"
-    "==="
-    "!=="
-    "and"
-    "or"
-    "not"
-    "&&"
-    "||"
-    "!"
-    "."
-    "#"
-    "="
-    ":="
-    "<-")
-  "Elixir mode operators.")
-
-(defvar elixir-mode-sigils '("B" "C" "R" "b" "c" "r")
-  "%-prefixed sigils that are understood by `elixir-mode'.")
 
 (defvar elixir-basic-offset 2)
 (defvar elixir-key-label-offset 0)
 (defvar elixir-match-label-offset 2)
 
-(defvar font-lock-operator-face 'font-lock-operator-face)
-(defface font-lock-operator-face
-  '((((type tty) (class color)) nil)
-    (((class color) (background light))
-     (:foreground "darkred"))
+(defvar elixir-negation-face 'elixir-negation-face)
+(defface elixir-negation-face
+  '((((class color) (min-colors 88) (background light))
+     :foreground "#ff4500")
+    (((class color) (background dark))
+     (:foreground "#ff4500"))
     (t nil))
-  "For use with operators."
+  "For use with standalone \"?\" to indicate code point."
   :group 'font-lock-faces)
 
-(defconst elixir-mode-font-lock-defaults
-  (list
-   ;; records and modules at point of definition:
-   '("^\\s *def\\(module\\|record\\|protocol\\|impl\\)\\s +\\([^( \t\n,]+\\)" 2 font-lock-type-face)
+(defvar elixir-attribute-face 'elixir-attribute-face)
+(defface elixir-attribute-face
+  '((((class color) (min-colors 88) (background light))
+     :foreground "MediumPurple4")
+    (((class color) (background dark))
+     (:foreground "thistle"))
+    (t nil))
+  "For use with module attribute tokens."
+  :group 'font-lock-faces)
 
-   ;; methods:
-   `(,(concat "^\\s *\\<" (regexp-opt elixir-mode-define-names t) "\\>\\s +\\([^( \t\n]+\\)") 2 font-lock-function-name-face)
+(defvar elixir-atom-face 'elixir-atom-face)
+(defface elixir-atom-face
+  '((((class color) (min-colors 88) (background light))
+     :foreground "RoyalBlue4")
+    (((class color) (background dark))
+     (:foreground "light sky blue"))
+    (t nil))
+  "For use with atoms & map keys."
+  :group 'font-lock-faces)
 
-   ;; keywords:
-   `(,(concat "\\<" (regexp-opt elixir-mode-keyword-names t) "\\>") . font-lock-keyword-face)
+(defvar elixir-ignored-var-face 'elixir-ignored-var-face)
+(defface elixir-ignored-var-face
+  '((((class color) (min-colors 88) (background light))
+     :foreground "#424242")
+    (((class color) (background dark))
+     (:foreground "#616161"))
+    (t nil))
+  "For use with ignored variables (starting with underscore)."
+  :group 'font-lock-faces)
 
-   ;; % Sigils
-   `(,(concat "\\<%" (regexp-opt elixir-mode-sigils t) "\\>") . font-lock-builtin-face)
+(eval-when-compile
+  (defconst elixir-rx-constituents
+    `(
+      (string-delimiter . ,(rx (and
+                                ;; Match even number of backslashes.
+                                (or (not (any ?\\ ?\' ?\")) point
+                                    ;; Quotes might be preceded by escaped quote
+                                    (and (or (not (any ?\\)) point) ?\\
+                                         (* ?\\ ?\\) (any ?\' ?\")))
+                                (* ?\\ ?\\)
+                                ;; Match single or triple quotes of any kind.
+                                (group (or "\"" "\"\"\"" "'" "'''")))))
+      (atoms . ,(rx ":"
+                    (or
+                     (and
+                      (any "a-z" "A-Z" "_" "\"" "'")
+                      (zero-or-more (any "a-z" "A-Z" "0-9" "_" "\"" "'" "!" "@" "?")))
+                     (and "\"" (one-or-more (not (any "\""))) "\"")
+                     (and "'" (one-or-more (not (any "'"))) "'"))))
+      (builtin . ,(rx symbol-start
+                      (or "case" "cond" "for" "if" "quote" "raise" "receive" "send"
+                          "super" "throw" "try" "unless" "unquote" "unquote_splicing"
+                          "with")
+                      symbol-end))
+      (builtin-declaration . ,(rx symbol-start
+                                  (or "def" "defp" "defmodule" "defprotocol"
+                                      "defmacro" "defmacrop" "defdelegate"
+                                      "defexception" "defstruct" "defimpl"
+                                      "defcallback" "defoverridable")
+                                  symbol-end))
+      (builtin-namespace . ,(rx symbol-start
+                                (or "import" "require" "use" "alias")
+                                symbol-end))
+      ;; Set aside code point syntax for `elixir-negation-face'.
+      (code-point . ,(rx symbol-start
+                         "?"
+                         anything
+                         symbol-end))
+      (function-declaration . ,(rx (or line-start (not (any ".")))
+                                   symbol-start
+                                   (or "def" "defp")
+                                   symbol-end))
+      ;; The first character of an identifier must be a letter or an underscore.
+      ;; After that, they may contain any alphanumeric character + underscore.
+      ;; Additionally, the final character may be either `?' or `!'.
+      (identifiers . ,(rx (one-or-more (any "A-Z" "a-z" "_"))
+                          (zero-or-more (any "A-Z" "a-z" "0-9" "_"))
+                          (optional (or "?" "!"))))
+      (keyword . ,(rx symbol-start
+                      (or "fn" "do" "end" "after" "else" "rescue" "catch")
+                      symbol-end))
+      (keyword-operator . ,(rx symbol-start
+                               (or "not" "and" "or" "when" "in")
+                               symbol-end))
+      ;; Module and submodule names start with upper case letter. This
+      ;; can then be followed by any combination of alphanumeric chars.
+      ;; In turn, this can be followed by a `.' which begins the notation of
+      ;; a submodule, which follows the same naming pattern of the module.
+      ;; Finally, like other identifiers, it can be terminated with either `?'
+      ;; or `!'.
+      (module-names . ,(rx symbol-start
+                           (optional (or "%" "&"))
+                           (one-or-more (any "A-Z"))
+                           (zero-or-more (any "A-Z" "a-z" "_" "0-9"))
+                           (zero-or-more
+                            (and "."
+                                 (one-or-more (any "A-Z" "_"))
+                                 (zero-or-more (any "A-Z" "a-z" "_" "0-9"))))
+                           (optional (or "!" "?"))
+                           symbol-end))
+      (pseudo-var . ,(rx symbol-start
+                         (optional (or "%" "&"))
+                         (or "_" "__MODULE__" "__DIR__" "__ENV__" "__CALLER__"
+                             "__block__" "__aliases__")
+                         symbol-end))
+      (sigils . ,(rx "~" (or "B" "C" "R" "S" "b" "c" "r" "s" "w")))))
 
-   ;; builtins:
-   `(,(concat "\\<" (regexp-opt elixir-mode-builtin-names t) "\\>") . font-lock-builtin-face)
+  (defmacro elixir-rx (&rest sexps)
+    (let ((rx-constituents (append elixir-rx-constituents rx-constituents)))
+      (cond ((null sexps)
+             (error "No regexp"))
+            ((cdr sexps)
+             (rx-to-string `(and ,@sexps) t))
+            (t
+             (rx-to-string (car sexps) t))))))
 
-   ;; core modules:
-   `(,(concat "\\<" (regexp-opt elixir-mode-module-names t) "\\>") . font-lock-type-face)
+(defsubst elixir-syntax-in-string-or-comment-p ()
+  (nth 8 (syntax-ppss)))
 
-   ;; operators:
-   (when elixir-mode-highlight-operators
-     `(,(concat "\\<" (regexp-opt elixir-mode-operator-names t) "\\>") . font-lock-operator-face))
+(defsubst elixir-syntax-count-quotes (quote-char &optional point limit)
+  "Count number of quotes around point (max is 3).
+QUOTE-CHAR is the quote char to count.  Optional argument POINT is
+the point where scan starts (defaults to current point), and LIMIT
+is used to limit the scan."
+  (let ((i 0))
+    (while (and (< i 3)
+                (or (not limit) (< (+ point i) limit))
+                (eq (char-after (+ point i)) quote-char))
+      (setq i (1+ i)))
+    i))
 
-   ;; variables:
-   '("\\(\\w+\\)\\s-*:?=[^=]" 1 font-lock-variable-name-face)
+(defun elixir-syntax-stringify ()
+  "Put `syntax-table' property correctly on single/triple quotes."
+  (let* ((num-quotes (length (match-string-no-properties 1)))
+         (ppss (prog2
+                   (backward-char num-quotes)
+                   (syntax-ppss)
+                 (forward-char num-quotes)))
+         (string-start (and (not (nth 4 ppss)) (nth 8 ppss)))
+         (quote-starting-pos (- (point) num-quotes))
+         (quote-ending-pos (point))
+         (num-closing-quotes
+          (and string-start
+               (elixir-syntax-count-quotes
+                (char-before) string-start quote-starting-pos))))
+    (cond ((and string-start (= num-closing-quotes 0))
+           ;; This set of quotes doesn't match the string starting
+           ;; kind. Do nothing.
+           nil)
+          ((not string-start)
+           ;; This set of quotes delimit the start of a string.
+           (put-text-property quote-starting-pos (1+ quote-starting-pos)
+                              'syntax-table (string-to-syntax "|")))
+          ((= num-quotes num-closing-quotes)
+           ;; This set of quotes delimit the end of a string.
+           (put-text-property (1- quote-ending-pos) quote-ending-pos
+                              'syntax-table (string-to-syntax "|")))
+          ((> num-quotes num-closing-quotes)
+           ;; This may only happen whenever a triple quote is closing
+           ;; a single quoted string. Add string delimiter syntax to
+           ;; all three quotes.
+           (put-text-property quote-starting-pos quote-ending-pos
+                              'syntax-table (string-to-syntax "|"))))))
 
-   ;; regexes:
-   '("-[Rr].*[ \n\t]" . font-lock-constant-face)
 
-   ;; atoms, boolean:
-   '("\\<\\(true\\|false\\|nil\\)\\>" . font-lock-reference-face)
+(defun elixir-syntax-propertize-interpolation ()
+  (let* ((beg (match-beginning 0))
+         (context (save-excursion (save-match-data (syntax-ppss beg)))))
+    (put-text-property beg (1+ beg) 'syntax-table (string-to-syntax "w"))
+    (put-text-property beg (1+ beg) 'elixir-interpolation
+                       (cons (nth 3 context) (match-data)))))
 
-   ;; atoms, generic
-   '("[@:]\\w*\\|\\w*:\\s-" . font-lock-reference-face))
-  "Highlighting for Elixir mode.")
+(defconst elixir-sigil-delimiter-pair
+  '((?\( . ")")
+    (?\{ . "}")
+    (?\< . ">")
+    (?\[ . "]")))
 
-(defun elixir-mode-cygwin-path (expanded-file-name)
-  "Elixir mode get Cygwin absolute path name.
-Argument EXPANDED-FILE-NAME ."
-  (replace-regexp-in-string "^[a-zA-Z]:" elixir-mode-cygwin-prefix expanded-file-name t))
+(defun elixir-syntax-replace-property-in-sigil ()
+  (unless (elixir-syntax-in-string-or-comment-p)
+    (let ((heredoc-p (save-excursion
+                       (goto-char (match-beginning 0))
+                       (looking-at-p "~[sS]\\(?:'''\\|\"\"\"\\)"))))
+      (unless heredoc-p
+        (forward-char 1)
+        (let* ((start-delim (char-after (1- (point))))
+               (end-delim (or (assoc-default start-delim elixir-sigil-delimiter-pair)
+                              (char-to-string start-delim)))
+               (end (save-excursion
+                      (let (finish)
+                        (while (not finish)
+                          (skip-chars-forward (concat "^" end-delim))
+                          (if (or (not (eq (char-before) ?\\))
+                                  (eq (char-before (1- (point))) ?\\)
+                                  (eobp))
+                              (setq finish t)
+                            (forward-char 1)))
+                        (point))))
+               (word-syntax (string-to-syntax "w")))
+          (when (memq start-delim '(?' ?\"))
+            (setq end (1+ end))
+            (forward-char -1))
+          (while (re-search-forward "[\"'#]" end 'move)
+            (put-text-property (1- (point)) (point) 'syntax-table word-syntax)))))))
 
-(defun elixir-mode-universal-path (file-name)
-  "Elixir mode multi-OS path handler.
-Argument FILE-NAME ."
-  (let ((full-file-name (expand-file-name file-name)))
-    (if (and (equal system-type 'windows-nt)
-             elixir-mode-cygwin-paths)
-        (elixir-mode-cygwin-path full-file-name)
-      full-file-name)))
+(defun elixir-syntax-propertize-function (start end)
+  (let ((case-fold-search nil))
+    (goto-char start)
+    (funcall
+     (syntax-propertize-rules
+      ("\\(\\?\\)[\"']"
+       (1 (if (save-excursion (nth 3 (syntax-ppss (match-beginning 0))))
+              ;; Within a string, skip.
+              (ignore
+               (goto-char (match-end 1)))
+            (put-text-property (match-end 1) (match-end 0)
+                               'syntax-table (string-to-syntax "_"))
+            (string-to-syntax "'"))))
+      ((elixir-rx string-delimiter)
+       (0 (ignore (elixir-syntax-stringify))))
+      ((elixir-rx sigils)
+       (0 (ignore (elixir-syntax-replace-property-in-sigil))))
+      ((rx (group "#{" (0+ (not (any "}"))) "}"))
+       (0 (ignore (elixir-syntax-propertize-interpolation)))))
+     start end)))
 
-(defun elixir-mode-command-compile (file-name)
-  "Elixir mode command to compile a file.
-Argument FILE-NAME ."
-  (let ((full-file-name (elixir-mode-universal-path file-name)))
-    (mapconcat 'identity (append (list elixir-compiler-command) (list full-file-name)) " ")))
+(defun elixir-match-interpolation (limit)
+  (let ((pos (next-single-char-property-change (point) 'elixir-interpolation
+                                               nil limit)))
+    (when (and pos (> pos (point)))
+      (goto-char pos)
+      (let ((value (get-text-property pos 'elixir-interpolation)))
+        (if (car value)
+            (progn
+              (set-match-data (cdr value))
+              t)
+          (elixir-match-interpolation limit))))))
 
-(defun elixir-mode-compiled-file-name (&optional filename)
-  "Elixir mode compiled FILENAME."
-  (concat (file-name-sans-extension (or filename (buffer-file-name))) ".beam"))
 
-(defun elixir-mode-compile-file ()
-  "Elixir mode compile and save current file."
-  (interactive)
-  (let ((compiler-output (shell-command-to-string (elixir-mode-command-compile (buffer-file-name)))))
-    (when (string= compiler-output "")
-      (message "Compiled and saved as %s" (elixir-mode-compiled-file-name)))))
+(defconst elixir-font-lock-keywords
+  `(
+    ;; String interpolation
+    (elixir-match-interpolation 0 font-lock-variable-name-face t)
 
-;;;###autoload
-(defun elixir-mode-iex (&optional args-p)
-  "Elixir mode interactive REPL.
-Optional argument ARGS-P ."
-  (interactive "P")
-  (let ((switches (if (equal args-p nil)
-                      '()
-                    (split-string (read-string "Additional args: ")))))
-    (unless (comint-check-proc "*IEX*")
-      (set-buffer
-       (apply 'make-comint "IEX"
-              elixir-iex-command nil switches))))
-  (pop-to-buffer "*IEX*"))
+    ;; Module attributes
+    (,(elixir-rx (and "@" (1+ identifiers)))
+     0 elixir-attribute-face)
+
+    ;; Keywords
+    (,(elixir-rx (and (or line-start (not (any ".")))
+                      (group (or builtin builtin-declaration builtin-namespace
+                                 keyword keyword-operator))))
+     1 font-lock-keyword-face)
+
+    ;; Function names, i.e. `def foo do'.
+    (,(elixir-rx (group function-declaration)
+                 space
+                 (group identifiers))
+     2 font-lock-function-name-face)
+
+    ;; Sigil patterns. Elixir has support for eight different sigil delimiters.
+    ;; This isn't a very DRY approach here but it gets the job done.
+    (,(elixir-rx (group sigils)
+                 (and "/"
+                      (group (zero-or-more (or (and "\\" "/") (not (any "/" "\n" "\r")))))
+                      "/"))
+     (1 font-lock-builtin-face)
+     (2 font-lock-string-face))
+    (,(elixir-rx (group sigils)
+                 (and "["
+                      (group (zero-or-more (or (and "\\" "]") (not (any "]" "\n" "\r")))))
+                      "]"))
+     (1 font-lock-builtin-face)
+     (2 font-lock-string-face))
+    (,(elixir-rx (group sigils)
+                 (and "{"
+                      (group (zero-or-more (or (and "\\" "}") (not (any "}" "\n" "\r")))))
+                      "}"))
+     (1 font-lock-builtin-face)
+     (2 font-lock-string-face))
+    (,(elixir-rx (group sigils)
+                 (and "("
+                      (group (zero-or-more (or (and "\\" ")") (not (any ")" "\n" "\r")))))
+                      ")"))
+     (1 font-lock-builtin-face)
+     (2 font-lock-string-face))
+    (,(elixir-rx (group sigils)
+                 (and "|"
+                      (group (zero-or-more (or (and "\\" "|") (not (any "|" "\n" "\r")))))
+                      "|"))
+     (1 font-lock-builtin-face)
+     (2 font-lock-string-face))
+    (,(elixir-rx (group sigils)
+                 (and "\""
+                      (group (zero-or-more (or (and "\\" "\"") (not (any "\"" "\n" "\r")))))
+                      "\""))
+     (1 font-lock-builtin-face)
+     (2 font-lock-string-face))
+    (,(elixir-rx (group sigils)
+                 (and "'"
+                      (group (zero-or-more (or (and "\\" "'") (not (any "'" "\n" "\r")))))
+                      "'"))
+     (1 font-lock-builtin-face)
+     (2 font-lock-string-face))
+    (,(elixir-rx (group sigils)
+                 (and "<"
+                      (group (zero-or-more (or (and "\\" ">") (not (any ">" "\n" "\r")))))
+                      ">"))
+     (1 font-lock-builtin-face)
+     (2 font-lock-string-face))
+
+    ;; Modules
+    (,(elixir-rx (group module-names))
+     1 font-lock-type-face)
+
+    ;; Atoms and singleton-like words like true/false/nil.
+    (,(elixir-rx symbol-start
+                 (group (or atoms "true" "false" "nil"))
+                 symbol-end
+                 (zero-or-more space)
+                 (optional "="))
+     1 elixir-atom-face)
+
+    ;; Variable definitions
+    (,(elixir-rx (group identifiers)
+                 (zero-or-more space)
+                 (repeat 1 "=")
+                 (or (or sigils identifiers space)
+                     (one-or-more "\n")))
+     1 font-lock-variable-name-face)
+
+    ;; Gray out variables starting with "_"
+    (,(elixir-rx symbol-start
+                 (group (and "_"
+                             (any "A-Z" "a-z" "0-9"))
+                        (zero-or-more (any "A-Z" "a-z" "0-9" "_"))
+                        (optional (or "?" "!"))))
+     1 elixir-ignored-var-face)
+
+    ;; Map keys
+    (,(elixir-rx (group (and (one-or-more identifiers) ":")) space)
+     1 elixir-atom-face)
+
+    ;; Pseudovariables
+    (,(elixir-rx (group pseudo-var))
+     1 font-lock-constant-face)
+
+    ;; Code points
+    (,(elixir-rx (group code-point))
+     1 elixir-negation-face)))
 
 ;;;###autoload
 (defun elixir-mode-open-modegithub ()
@@ -446,154 +443,86 @@ Optional argument ARGS-P ."
 (defun elixir-mode-open-elixir-home ()
   "Elixir mode go to language home."
   (interactive)
-  (browse-url elixir-mode--website-url))
+  (browse-url elixir-mode-website-url))
 
 ;;;###autoload
 (defun elixir-mode-open-docs-master ()
   "Elixir mode go to master documentation."
   (interactive)
-  (browse-url (concat elixir-mode--website-url "/docs/master")))
+  (browse-url (concat elixir-mode-website-url "/docs/master/elixir")))
 
 ;;;###autoload
 (defun elixir-mode-open-docs-stable ()
   "Elixir mode go to stable documentation."
   (interactive)
-  (browse-url (concat elixir-mode--website-url "/docs/stable")))
+  (browse-url (concat elixir-mode-website-url "/docs/stable/elixir")))
 
 ;;;###autoload
-(defun elixir-mode-show-version ()
-  "Elixir mode print version."
+(defun elixir-mode-version (&optional show-version)
+  "Get the Elixir-Mode version as string.
+
+If called interactively or if SHOW-VERSION is non-nil, show the
+version in the echo area and the messages buffer.
+
+The returned string includes both, the version from package.el
+and the library version, if both a present and different.
+
+If the version number could not be determined, signal an error,
+if called interactively, or if SHOW-VERSION is non-nil, otherwise
+just return nil."
+  (interactive (list t))
+  (let ((version (pkg-info-version-info 'elixir-mode)))
+    (when show-version
+      (message "Elixir-Mode version: %s" version))
+    version))
+
+(defun elixir-mode-fill-doc-string ()
   (interactive)
-  (message (format "elixir-mode v%s" elixir-mode--version)))
-
-(defun elixir-mode--code-eval-string-command (file)
-  (format "%s -e 'IO.puts inspect(elem(Code.eval_string(File.read!(\"%s\")), 0))'"
-          elixir-mode-command
-          file))
-
-(defun elixir-mode--code-string-to-quoted-command (file)
-  (format "%s -e 'IO.puts inspect(elem(Code.string_to_quoted(File.read!(\"%s\")), 1))'"
-          elixir-mode-command
-          file))
-
-(defun elixir-mode--execute-elixir-with-code-eval-string (string)
-  (with-temp-file elixir-mode--eval-filename
-    (insert string))
-  (let ((output (shell-command-to-string (elixir-mode--code-eval-string-command elixir-mode--eval-filename))))
-    (delete-file elixir-mode--eval-filename)
-    output))
-
-(defun elixir-mode--execute-elixir-with-code-string-to-quoted (string)
-  (with-temp-file elixir-mode--eval-filename
-    (insert string))
-  (let ((output (shell-command-to-string (elixir-mode--code-string-to-quoted-command elixir-mode--eval-filename))))
-    (delete-file elixir-mode--eval-filename)
-    output))
-
-(defun elixir-mode--eval-string (string)
-  (let ((output (elixir-mode--execute-elixir-with-code-eval-string string)))
-    (message output)))
-
-(defun elixir-mode--string-to-quoted (string)
-  (let* ((output (elixir-mode--execute-elixir-with-code-string-to-quoted string)))
-    (message output)))
-
-(defun elixir-mode-eval-on-region (beg end)
-  "Evaluate the Elixir code on the marked region.
-Argument BEG Start of the region.
-Argument END End of the region."
-  (interactive (list (point) (mark)))
-  (unless (and beg end)
-    (error "The mark is not set now, so there is no region"))
-  (let* ((region (buffer-substring-no-properties beg end)))
-    (elixir-mode--eval-string region)))
-
-(defun elixir-mode-eval-on-current-line ()
-  "Evaluate the Elixir code on the current line."
-  (interactive)
-  (let ((current-line (thing-at-point 'line)))
-    (elixir-mode--eval-string current-line)))
-
-(defun elixir-mode-eval-on-current-buffer ()
-  "Evaluate the Elixir code on the current buffer."
-  (interactive)
-  (let ((current-buffer (buffer-substring-no-properties (point-max) (point-min))))
-    (elixir-mode--eval-string current-buffer)))
-
-(defun elixir-mode-string-to-quoted-on-region (beg end)
-  "Get the representation of the expression on the marked region.
-Argument BEG Start of the region.
-Argument END End of the region."
-  (interactive (list (point) (mark)))
-  (unless (and beg end)
-    (error "The mark is not set now, so there is no region"))
-  (let ((region (buffer-substring-no-properties beg end)))
-    (elixir-mode--string-to-quoted region)))
-
-(defun elixir-mode-string-to-quoted-on-current-line ()
-  "Get the representation of the expression on the current line."
-  (interactive)
-  (let ((current-line (thing-at-point 'line)))
-    (elixir-mode--string-to-quoted current-line)))
+  (save-excursion
+    (re-search-backward "@\\(?:module\\)?doc +\"\"\"" nil t)
+    (re-search-forward "\"\"\"" nil t)
+    (set-mark (point))
+    (re-search-forward "\"\"\"" nil t)
+    (re-search-backward "^ *\"\"\"" nil t)
+    (backward-char)
+    (fill-region (point) (mark))))
 
 (easy-menu-define elixir-mode-menu elixir-mode-map
   "Elixir mode menu."
   '("Elixir"
     ["Indent line" smie-indent-line]
-    ["Compile file" elixir-mode-compile-file]
-    ["IEX" elixir-mode-iex]
     "---"
     ["elixir-mode on GitHub" elixir-mode-open-modegithub]
     ["Elixir homepage" elixir-mode-open-elixirhome]
-    ["About" elixir-mode-show-version]
-    ))
+    ["About" elixir-mode-version]))
 
 ;;;###autoload
-(defun elixir-mode ()
-  "Major mode for editing Elixir files."
-  (interactive)
-  (kill-all-local-variables)
-  (use-local-map elixir-mode-map)
-  (set-syntax-table elixir-mode-syntax-table)
-  (set (make-local-variable 'font-lock-defaults) '(elixir-mode-font-lock-defaults))
-  (setq major-mode 'elixir-mode)
-  (setq mode-name "Elixir")
+(define-derived-mode elixir-mode prog-mode "Elixir"
+  "Major mode for editing Elixir code.
+
+\\{elixir-mode-map}"
+  (set (make-local-variable 'font-lock-defaults)
+       '(elixir-font-lock-keywords))
   (set (make-local-variable 'comment-start) "# ")
   (set (make-local-variable 'comment-end) "")
+  (set (make-local-variable 'comment-start-skip) "#+ *")
   (set (make-local-variable 'comment-use-syntax) t)
-  (set (make-local-variable 'tab-width) elixir-basic-offset)
-  (set (make-local-variable 'imenu-generic-expression) elixir-imenu-generic-expression)
-  (if (boundp 'syntax-propertize-function)
-      (set (make-local-variable 'syntax-propertize-function) 'elixir-syntax-propertize))
-  (smie-setup elixir-smie-grammar 'verbose-elixir-smie-rules ; 'elixir-smie-rules
+  (set (make-local-variable 'syntax-propertize-function)
+       #'elixir-syntax-propertize-function)
+  (set (make-local-variable 'imenu-generic-expression)
+       elixir-imenu-generic-expression)
+  (smie-setup elixir-smie-grammar 'verbose-elixir-smie-rules
               :forward-token 'elixir-smie-forward-token
-              :backward-token 'elixir-smie-backward-token)
-  (run-hooks 'elixir-mode-hook)
-  (run-hooks 'prog-mode-hook))
-
-(define-minor-mode elixir-cos-mode
-  "Elixir mode toggle compile on save."
-  :group 'elixir-cos :lighter " CoS"
-  (cond
-   (elixir-cos-mode
-    (add-hook 'after-save-hook 'elixir-mode-compile-file nil t))
-   (t
-    (remove-hook 'after-save-hook 'elixir-mode-compile-file t))))
-
-;;;###autoload
-(defun elixir-mode-run-tests ()
-  "Run ERT test for `elixir-mode'."
-  (interactive)
-  (load "elixir-mode-tests")
-  (ert-run-tests-interactively "^elixir-ert-.*$"))
+              :backward-token 'elixir-smie-backward-token))
 
 ;; Invoke elixir-mode when appropriate
 
 ;;;###autoload
 (progn
-  (add-to-list 'auto-mode-alist '("\\.elixir$" . elixir-mode))
-  (add-to-list 'auto-mode-alist '("\\.ex$" . elixir-mode))
-  (add-to-list 'auto-mode-alist '("\\.exs$" . elixir-mode)))
+  (add-to-list 'auto-mode-alist '("\\.elixir\\'" . elixir-mode))
+  (add-to-list 'auto-mode-alist '("\\.ex\\'" . elixir-mode))
+  (add-to-list 'auto-mode-alist '("\\.exs\\'" . elixir-mode)))
 
 (provide 'elixir-mode)
+
 ;;; elixir-mode.el ends here
