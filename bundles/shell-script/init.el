@@ -7,3 +7,4 @@
 (add-to-list 'auto-mode-alist '("\\.zshenv$" . shell-script-mode))
 
 
+(add-hook 'sh-mode-hook 'flycheck-mode)
