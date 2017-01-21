@@ -1,3 +1,4 @@
+;; Magit and extras
 (unless (require 'magit nil 'dont-fail)
   (progn
     (package-install 'git-commit-mode)
