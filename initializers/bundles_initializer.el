@@ -78,3 +78,5 @@
 (elbundle/load-elbundle "perl")
 
 (elbundle/load-elbundle "elixir")
+
+(setq-default major-mode 'text-mode)
