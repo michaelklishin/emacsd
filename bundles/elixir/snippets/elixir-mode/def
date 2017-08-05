@@ -1,0 +1,5 @@
+# name: (def ...)
+# --
+def ${1:function}(${2:args}) do
+  $0
+end
