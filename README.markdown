@@ -1,7 +1,7 @@
 # What is emacsd
 
 This is a yet another collection of Emacs modes, settings, extensions, color themes
-and everything in between. It has been accumulated over the period of 8 years
+and everything in between. It has been accumulated over the period of 11 years
 by Michael Klishin, used and modified by several other smart people and supports
 machine-specific settings.
 
@@ -11,24 +11,21 @@ Many parts of this codebase need refactoring, documentation, upgrades to various
 
 ## Installation
 
-First, make sure you install the following pre-requisites with
-`M-x package-install [name]`:
-
- * `pkg-info`
- * `git-commit-modes`
- * `git-rebase-modes` 
-
 Clone this repo to `~/emacsd`, `touch ~/emacsd/custom-variables.el`.
 
 Add the following code to you ~/.emacs
 
-    (defvar emacsd-dir     "~/emacsd/")
+``` emacs-lisp
+(defvar emacsd-dir     "~/emacsd/")
 
-    (add-to-list 'load-path "~/.emacs.d")
-    (add-to-list 'load-path emacsd-dir)
+(add-to-list 'load-path "~/.emacs.d")
+(add-to-list 'load-path emacsd-dir)
 
-    (load "boot")
+(load "boot")
+```
 
+This should initialize the necessary package repositories
+and install the non-bundled dependencies.
 
 
 
@@ -36,5 +33,5 @@ Add the following code to you ~/.emacs
 
 Released under the MIT license.
 
-* (c) Michael S. Klishin, 2007-2015
+* (c) Michael S. Klishin, 2007-2017
 * (c) Dmitriy Dzema, 2009-2011
