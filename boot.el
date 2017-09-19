@@ -32,3 +32,4 @@
 (load-initializer "bundles")
 (load-initializer "scratches")
 (load-initializer "ui")
+(load-initializer "server")
