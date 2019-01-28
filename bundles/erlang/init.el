@@ -1,7 +1,7 @@
 ;; This is needed for Erlang mode setup
 (setq        erlang-root-dir (car (file-expand-wildcards "/usr/local/Cellar/erlang/*")))
 (add-to-list 'load-path      (car (file-expand-wildcards "/usr/local/Cellar/erlang/*/lib/erlang/lib/tools-*/emacs")))
-(add-to-list 'exec-path      (car (file-expand-wildcards "/usr/local/Cellar/erlang/*/bin")))
+(add-to-list 'exec-path      (car (file-expand-wildcards "/Users/antares/Tools/otp/21.2.4/bin")))
 
 (defvar erlang-man-dirs
   '(("Man - Commands" "/lib/erlang/man/man1" t)
